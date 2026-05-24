@@ -9,6 +9,8 @@ import paymentsRouter from "./payments";
 import shippingRouter, { seedShippingZones } from "./shipping";
 import notificationsRouter from "./notifications";
 import reviewsRouter from "./reviews";
+import vendorVerificationRouter from "./vendor-verification";
+import legalRouter from "./legal";
 
 const router: IRouter = Router();
 
@@ -22,6 +24,8 @@ router.use("/payments", paymentsRouter);
 router.use("/shipping", shippingRouter);
 router.use("/notifications", notificationsRouter);
 router.use("/reviews", reviewsRouter);
+router.use("/vendor/verification", vendorVerificationRouter);
+router.use("/legal", legalRouter);
 
 // Seed default shipping zones on startup
 seedShippingZones().catch(() => {});

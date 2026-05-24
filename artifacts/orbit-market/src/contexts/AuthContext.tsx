@@ -13,6 +13,7 @@ export interface AuthUser {
   storeDescription?: string | null;
   storeCategory?: string | null;
   isVendorApproved?: boolean | null;
+  verificationStatus?: string | null;
   createdAt: string;
 }
 

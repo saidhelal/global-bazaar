@@ -35,6 +35,9 @@ const ShippingZones     = lazy(() => import("@/pages/dashboard/admin/ShippingZon
 const NotificationsPage = lazy(() => import("@/pages/notifications/NotificationsPage"));
 const MyReviews         = lazy(() => import("@/pages/dashboard/customer/MyReviews"));
 const ReviewModeration  = lazy(() => import("@/pages/dashboard/admin/ReviewModeration"));
+const VendorOnboarding  = lazy(() => import("@/pages/vendor/VendorOnboarding"));
+const LegalDashboard    = lazy(() => import("@/pages/dashboard/legal/LegalDashboard"));
+const LegalVendorDetail = lazy(() => import("@/pages/dashboard/legal/LegalVendorDetail"));
 
 // Stable component wrapper — avoids inline arrow function re-mount bug
 const NewProductForm = () => <ProductForm />;
@@ -106,6 +109,13 @@ function Router() {
         {/* Reviews */}
         <Route path="/dashboard/reviews/moderation" component={ReviewModeration} />
         <Route path="/dashboard/reviews" component={MyReviews} />
+
+        {/* Vendor onboarding */}
+        <Route path="/vendor/onboarding" component={VendorOnboarding} />
+
+        {/* Legal / verification (admin) */}
+        <Route path="/dashboard/legal/:vendorId" component={LegalVendorDetail} />
+        <Route path="/dashboard/legal" component={LegalDashboard} />
 
         {/* Generic dashboard (role-based) */}
         <Route path="/dashboard" component={Dashboard} />

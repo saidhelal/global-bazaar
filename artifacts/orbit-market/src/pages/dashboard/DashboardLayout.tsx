@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { Link, useLocation } from 'wouter';
-import { LayoutDashboard, ShoppingBag, Heart, Settings, LogOut, Menu, X, Store, Package, BarChart2, Users, Shield, Globe, Truck, Star, MessageSquare } from 'lucide-react';
+import { LayoutDashboard, ShoppingBag, Heart, Settings, LogOut, Menu, X, Store, Package, BarChart2, Users, Shield, Globe, Truck, Star, MessageSquare, FileCheck } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
 import { useLanguage } from '../../contexts/LanguageContext';
 
@@ -20,6 +20,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     ],
     vendor: [
       { href: '/dashboard', label: { en: 'Dashboard', ar: 'لوحة التحكم' }, Icon: LayoutDashboard },
+      { href: '/vendor/onboarding', label: { en: 'Verification', ar: 'التحقق' }, Icon: FileCheck },
       { href: '/dashboard/products', label: { en: 'Products', ar: 'المنتجات' }, Icon: Package },
       { href: '/dashboard/orders', label: { en: 'Orders', ar: 'الطلبات' }, Icon: ShoppingBag },
       { href: '/dashboard/shipping', label: { en: 'Shipping', ar: 'الشحن' }, Icon: Truck },
@@ -31,6 +32,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
       { href: '/dashboard', label: { en: 'Dashboard', ar: 'لوحة التحكم' }, Icon: LayoutDashboard },
       { href: '/dashboard/users', label: { en: 'Users', ar: 'المستخدمون' }, Icon: Users },
       { href: '/dashboard/vendors', label: { en: 'Vendors', ar: 'البائعون' }, Icon: Store },
+      { href: '/dashboard/legal', label: { en: 'Legal Review', ar: 'المراجعة القانونية' }, Icon: FileCheck },
       { href: '/dashboard/orders', label: { en: 'All Orders', ar: 'جميع الطلبات' }, Icon: ShoppingBag },
       { href: '/dashboard/shipping/zones', label: { en: 'Shipping Zones', ar: 'مناطق الشحن' }, Icon: Truck },
       { href: '/dashboard/analytics', label: { en: 'Analytics', ar: 'التحليلات' }, Icon: BarChart2 },

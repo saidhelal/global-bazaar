@@ -4,6 +4,18 @@ import { z } from "zod";
 
 export const roleEnum = pgEnum("role", ["customer", "vendor", "admin"]);
 
+export const vendorVerificationStatusEnum = pgEnum("vendor_verification_status", [
+  "not_started",
+  "pending_documents",
+  "documents_submitted",
+  "documents_under_review",
+  "documents_approved",
+  "contract_pending",
+  "contract_submitted",
+  "approved",
+  "rejected",
+]);
+
 export const usersTable = pgTable("users", {
   id: serial("id").primaryKey(),
   email: text("email").notNull().unique(),
@@ -17,6 +29,7 @@ export const usersTable = pgTable("users", {
   storeDescription: text("store_description"),
   storeCategory: text("store_category"),
   isVendorApproved: boolean("is_vendor_approved").default(false),
+  verificationStatus: vendorVerificationStatusEnum("verification_status").default("not_started"),
   // Reset token
   resetToken: text("reset_token"),
   resetTokenExpiry: timestamp("reset_token_expiry"),

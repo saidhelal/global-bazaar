@@ -57,13 +57,64 @@ export default function VendorDashboard() {
   return (
     <DashboardLayout>
       <div className="space-y-6" dir={dir}>
-        {/* Pending approval banner */}
-        {!user?.isVendorApproved && (
-          <div className="bg-yellow-500/10 border border-yellow-500/30 rounded-lg px-4 py-3 flex items-center gap-3">
-            <AlertCircle className="w-5 h-5 text-yellow-400 flex-shrink-0" />
-            <p className="text-yellow-400 text-sm">{tx.pendingApproval}</p>
-          </div>
-        )}
+        {/* Onboarding / verification banner */}
+        {!user?.isVendorApproved && (() => {
+          const vs = user?.verificationStatus;
+          const isRejected = vs === 'rejected';
+          const needsContract = vs === 'contract_pending';
+          const underReview = ['documents_submitted', 'documents_under_review', 'contract_submitted'].includes(vs ?? '');
+          const notStarted = !vs || vs === 'not_started' || vs === 'pending_documents';
+
+          if (isRejected) return (
+            <div className="bg-red-500/10 border border-red-500/30 rounded-xl px-4 py-3 flex items-center justify-between gap-3">
+              <div className="flex items-center gap-3">
+                <AlertCircle className="w-5 h-5 text-red-400 flex-shrink-0" />
+                <p className="text-red-400 text-sm font-medium">
+                  {lang === 'ar' ? 'تم رفض طلب متجرك. تواصل مع الدعم للمزيد من التفاصيل.' : 'Your store application was rejected. Contact support for details.'}
+                </p>
+              </div>
+            </div>
+          );
+
+          if (needsContract) return (
+            <div className="bg-[#D4AF37]/10 border border-[#D4AF37]/30 rounded-xl px-4 py-3 flex items-center justify-between gap-3">
+              <div className="flex items-center gap-3">
+                <AlertCircle className="w-5 h-5 text-[#D4AF37] flex-shrink-0" />
+                <p className="text-[#D4AF37] text-sm font-medium">
+                  {lang === 'ar' ? 'اتفاقية البائع جاهزة للتوقيع.' : 'Your vendor agreement is ready to sign.'}
+                </p>
+              </div>
+              <Link href="/vendor/onboarding" className="text-[#D4AF37] text-xs font-bold hover:underline flex-shrink-0">
+                {lang === 'ar' ? 'توقيع الاتفاقية ←' : 'Sign Agreement →'}
+              </Link>
+            </div>
+          );
+
+          if (underReview) return (
+            <div className="bg-blue-500/10 border border-blue-500/20 rounded-xl px-4 py-3 flex items-center gap-3">
+              <AlertCircle className="w-5 h-5 text-blue-400 flex-shrink-0" />
+              <p className="text-blue-400 text-sm">
+                {lang === 'ar' ? 'وثائقك قيد المراجعة من قِبل الفريق القانوني.' : 'Your documents are under legal review.'}
+              </p>
+            </div>
+          );
+
+          if (notStarted) return (
+            <div className="bg-yellow-500/10 border border-yellow-500/30 rounded-xl px-4 py-3 flex items-center justify-between gap-3">
+              <div className="flex items-center gap-3">
+                <AlertCircle className="w-5 h-5 text-yellow-400 flex-shrink-0" />
+                <p className="text-yellow-400 text-sm font-medium">
+                  {lang === 'ar' ? 'أكمل التحقق من متجرك للبدء في البيع.' : 'Complete store verification to start selling.'}
+                </p>
+              </div>
+              <Link href="/vendor/onboarding" className="text-yellow-400 text-xs font-bold hover:underline flex-shrink-0">
+                {lang === 'ar' ? 'إكمال التحقق ←' : 'Complete Verification →'}
+              </Link>
+            </div>
+          );
+
+          return null;
+        })()}
 
         {/* Header */}
         <div className="flex items-center justify-between">
