@@ -1,113 +1,136 @@
 import { motion } from 'framer-motion';
-import { Heart, ShoppingBag, Star } from 'lucide-react';
+import { Star, Heart, ShoppingCart } from 'lucide-react';
 import { useLanguage } from '../contexts/LanguageContext';
 import { products } from '../data/products';
-import { Card, CardContent, CardFooter } from './ui/card';
-import { Button } from './ui/button';
-import { Badge } from './ui/badge';
 
 const container = {
   hidden: { opacity: 0 },
-  show: {
-    opacity: 1,
-    transition: { staggerChildren: 0.1 }
-  }
+  show: { opacity: 1, transition: { staggerChildren: 0.06 } },
+};
+const item = {
+  hidden: { opacity: 0, y: 12 },
+  show: { opacity: 1, y: 0, transition: { duration: 0.35 } },
 };
 
-const item = {
-  hidden: { opacity: 0, y: 20 },
-  show: { opacity: 1, y: 0, transition: { duration: 0.5, ease: "easeOut" } }
+function StarRating({ rating }: { rating: number }) {
+  return (
+    <div className="flex items-center gap-0.5">
+      {[...Array(5)].map((_, i) => (
+        <Star
+          key={i}
+          className={`w-3 h-3 ${
+            i < Math.floor(rating)
+              ? 'fill-primary text-primary'
+              : i < rating
+              ? 'fill-primary/50 text-primary/50'
+              : 'text-white/20'
+          }`}
+        />
+      ))}
+    </div>
+  );
+}
+
+type ProductRow = {
+  title: { en: string; ar: string };
+  items: typeof products;
 };
 
 export default function FeaturedProducts() {
-  const { t, lang, dir } = useLanguage();
+  const { lang, dir } = useLanguage();
+
+  const addToCartLabel = lang === 'en' ? 'Add to cart' : 'أضف للسلة';
+  const viewAllLabel   = lang === 'en' ? 'See all results' : 'عرض كل النتائج';
+
+  const rows: ProductRow[] = [
+    { title: { en: 'Recommended for You', ar: 'موصى به لك' }, items: products.slice(0, 5) },
+    { title: { en: 'Top Picks in Electronics', ar: 'أبرز اختيارات الإلكترونيات' }, items: products.slice(3, 8) },
+  ];
 
   return (
-    <section className="py-24 bg-card/30">
-      <div className="container mx-auto px-4">
-        <div className="flex justify-between items-end mb-12">
-          <h2 className="text-3xl md:text-4xl font-bold text-white tracking-tight">
-            {t('featured.title')}
-          </h2>
-          <Button variant="ghost" className="text-primary hover:text-primary hover:bg-primary/10">
-            {t('common.viewAll')}
-          </Button>
-        </div>
+    <section className="bg-[#0A1628] space-y-0" dir={dir}>
+      {rows.map((row) => (
+        <div key={row.title.en} className="max-w-[1400px] mx-auto px-3 md:px-6 py-1">
+          <div className="bg-[#112240] rounded-lg overflow-hidden">
+            {/* Row header */}
+            <div className="flex items-center justify-between px-5 py-4 border-b border-white/5">
+              <h2 className="text-base md:text-lg font-bold text-white">{row.title[lang]}</h2>
+              <button className="text-primary text-sm hover:underline" data-testid={`button-view-all-${row.title.en.replace(/\s/g, '-').toLowerCase()}`}>
+                {viewAllLabel}
+              </button>
+            </div>
 
-        <motion.div 
-          variants={container}
-          initial="hidden"
-          whileInView="show"
-          viewport={{ once: true, margin: "-100px" }}
-          className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 md:gap-8"
-        >
-          {products.map((product) => (
-            <motion.div key={product.id} variants={item}>
-              <Card className="h-full bg-card border-card-border overflow-hidden group">
-                <div className="relative aspect-[4/5] overflow-hidden bg-background/50">
-                  {/* Badges */}
-                  <div className="absolute top-4 left-4 z-10 flex flex-col gap-2">
-                    {product.id % 3 === 0 && (
-                      <Badge className="bg-primary text-primary-foreground">{t('featured.new')}</Badge>
-                    )}
-                  </div>
-                  
+            {/* Products — horizontal scroll on mobile, grid on desktop */}
+            <motion.div
+              variants={container}
+              initial="hidden"
+              whileInView="show"
+              viewport={{ once: true, margin: '-40px' }}
+              className="flex overflow-x-auto md:grid md:grid-cols-5 divide-x divide-white/5 rtl:divide-x-reverse scrollbar-hide"
+            >
+              {row.items.map((product) => (
+                <motion.div
+                  key={product.id}
+                  variants={item}
+                  className="flex-shrink-0 w-44 md:w-auto p-4 hover:bg-white/5 transition-colors group relative cursor-pointer"
+                  data-testid={`card-product-${product.id}`}
+                >
                   {/* Wishlist */}
-                  <Button 
-                    variant="ghost" 
-                    size="icon" 
-                    className="absolute top-4 right-4 z-10 w-8 h-8 bg-background/50 backdrop-blur-md border border-white/10 rounded-full text-white hover:text-red-500 hover:bg-background"
+                  <button
+                    className="absolute top-3 right-3 rtl:right-auto rtl:left-3 w-7 h-7 rounded-full bg-[#0A1628]/70 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity hover:text-red-400 text-white/60"
+                    data-testid={`button-wishlist-${product.id}`}
                   >
-                    <Heart className="w-4 h-4" />
-                  </Button>
+                    <Heart className="w-3.5 h-3.5" />
+                  </button>
 
                   {/* Image */}
-                  <img 
-                    src={product.image} 
-                    alt={product.name[lang]}
-                    className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110"
-                    loading="lazy"
-                  />
-                  
-                  {/* Quick Add overlay */}
-                  <div className="absolute inset-x-0 bottom-0 p-4 translate-y-full opacity-0 group-hover:translate-y-0 group-hover:opacity-100 transition-all duration-300">
-                    <Button className="w-full bg-white/90 backdrop-blur-md text-black hover:bg-primary hover:text-primary-foreground font-semibold">
-                      <ShoppingBag className="w-4 h-4 mr-2 rtl:mr-0 rtl:ml-2" />
-                      {t('common.addToCart')}
-                    </Button>
+                  <div className="aspect-square w-full overflow-hidden rounded bg-[#0A1628] mb-3">
+                    <img
+                      src={product.image}
+                      alt={product.name[lang]}
+                      className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-400"
+                      loading="lazy"
+                    />
                   </div>
-                </div>
 
-                <CardContent className="p-5">
-                  <div className="flex justify-between items-start mb-2 gap-2">
-                    <h3 className="font-semibold text-white line-clamp-1 flex-1" title={product.name[lang]}>
-                      {product.name[lang]}
-                    </h3>
-                  </div>
-                  <p className="text-sm text-muted-foreground mb-3">{product.vendor}</p>
-                  
-                  <div className="flex items-center gap-1 mb-4">
-                    <Star className="w-4 h-4 fill-primary text-primary" />
-                    <span className="text-sm font-medium text-white">{product.rating}</span>
-                    <span className="text-sm text-muted-foreground ml-1 rtl:ml-0 rtl:mr-1">(128)</span>
-                  </div>
-                </CardContent>
+                  {/* Name */}
+                  <p className="text-white text-xs font-medium line-clamp-2 leading-snug mb-1.5">
+                    {product.name[lang]}
+                  </p>
 
-                <CardFooter className="p-5 pt-0 flex justify-between items-end border-t border-white/5 mt-auto pt-4">
-                  <div>
-                    <p className="text-lg font-bold text-primary">
-                      ${product.priceUSD.toFixed(2)}
-                    </p>
-                    <p className="text-xs text-muted-foreground">
-                      {product.priceSAR.toFixed(2)} SAR
+                  {/* Vendor */}
+                  <p className="text-white/40 text-[10px] mb-1.5">{product.vendor}</p>
+
+                  {/* Rating */}
+                  <div className="flex items-center gap-1.5 mb-2">
+                    <StarRating rating={product.rating} />
+                    <span className="text-white/50 text-[10px]">(128)</span>
+                  </div>
+
+                  {/* Price */}
+                  <div className="mb-3">
+                    <span className="text-white font-bold text-sm">${product.priceUSD.toFixed(2)}</span>
+                    <p className="text-white/40 text-[10px]">
+                      {lang === 'en'
+                        ? `SAR ${product.priceSAR.toFixed(2)}`
+                        : `${product.priceSAR.toFixed(2)} ر.س`}
                     </p>
                   </div>
-                </CardFooter>
-              </Card>
+
+                  {/* Add to cart */}
+                  <button
+                    className="w-full bg-primary/20 hover:bg-primary text-primary hover:text-[#0A1628] text-xs font-semibold py-1.5 rounded transition-colors flex items-center justify-center gap-1.5"
+                    data-testid={`button-add-to-cart-${product.id}`}
+                  >
+                    <ShoppingCart className="w-3.5 h-3.5" />
+                    {addToCartLabel}
+                  </button>
+                </motion.div>
+              ))}
             </motion.div>
-          ))}
-        </motion.div>
-      </div>
+          </div>
+        </div>
+      ))}
     </section>
   );
 }
