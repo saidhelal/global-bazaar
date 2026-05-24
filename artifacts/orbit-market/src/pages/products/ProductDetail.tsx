@@ -6,6 +6,7 @@ import Footer from '../../components/Footer';
 import ProductCard from '../../components/ProductCard';
 import { useCart } from '../../contexts/CartContext';
 import { useLanguage } from '../../contexts/LanguageContext';
+import { useCurrency } from '../../contexts/CurrencyContext';
 import { apiFetch } from '../../contexts/AuthContext';
 import type { Product } from '../../hooks/useProducts';
 
@@ -20,6 +21,7 @@ export default function ProductDetail() {
   const { id } = useParams<{ id: string }>();
   const [, setLocation] = useLocation();
   const { lang, dir } = useLanguage();
+  const { formatPrice } = useCurrency();
   const { addItem, isInCart, getQuantity, updateQuantity } = useCart();
   const [product, setProduct] = useState<Product | null>(null);
   const [related, setRelated] = useState<Product[]>([]);
@@ -161,13 +163,13 @@ export default function ProductDetail() {
             {/* Price */}
             <div className="bg-[#112240] rounded-xl p-4 border border-white/5">
               <div className="flex items-baseline gap-3">
-                <span className="text-[#D4AF37] text-3xl font-bold">${price.toFixed(2)}</span>
-                {compareAt && <span className="text-white/30 text-lg line-through">${compareAt.toFixed(2)}</span>}
+                <span className="text-[#D4AF37] text-3xl font-bold">{formatPrice(price)}</span>
+                {compareAt && <span className="text-white/30 text-lg line-through">{formatPrice(compareAt)}</span>}
                 {product.discountPercent && product.discountPercent > 0 ? (
                   <span className="bg-[#D4AF37] text-[#0A1628] text-xs font-bold px-2 py-0.5 rounded">Save {product.discountPercent}%</span>
                 ) : null}
               </div>
-              <p className="text-green-400 text-sm mt-1.5">✓ Free shipping on orders over $100</p>
+              <p className="text-green-400 text-sm mt-1.5">✓ {lang === 'ar' ? `شحن مجاني للطلبات فوق ${formatPrice(100)}` : `Free shipping on orders over ${formatPrice(100)}`}</p>
             </div>
 
             {/* Stock */}

@@ -4,6 +4,7 @@ import Header from '../../components/Header';
 import Footer from '../../components/Footer';
 import { useCart } from '../../contexts/CartContext';
 import { useLanguage } from '../../contexts/LanguageContext';
+import { useCurrency } from '../../contexts/CurrencyContext';
 
 function getImgUrl(path: string | null | undefined) {
   if (!path) return 'https://picsum.photos/seed/product/80/80';
@@ -15,6 +16,7 @@ function getImgUrl(path: string | null | undefined) {
 export default function Cart() {
   const { items, count, subtotal, removeItem, updateQuantity, clearCart } = useCart();
   const { lang, dir } = useLanguage();
+  const { formatPrice } = useCurrency();
   const [, setLocation] = useLocation();
 
   const shipping = subtotal >= 100 ? 0 : 9.99;
@@ -82,7 +84,7 @@ export default function Cart() {
                       {(lang === 'ar' && item.titleAr) ? item.titleAr : item.title}
                     </h3>
                   </Link>
-                  <p className="text-[#D4AF37] font-bold mt-1">${item.price.toFixed(2)}</p>
+                  <p className="text-[#D4AF37] font-bold mt-1">{formatPrice(item.price)}</p>
                   <div className="flex items-center justify-between mt-3">
                     <div className="flex items-center gap-1 bg-[#0A1628] border border-white/10 rounded-lg">
                       <button
@@ -101,7 +103,7 @@ export default function Cart() {
                       </button>
                     </div>
                     <div className="flex items-center gap-3">
-                      <span className="text-white/60 text-sm">${(item.price * item.quantity).toFixed(2)}</span>
+                      <span className="text-white/60 text-sm">{formatPrice(item.price * item.quantity)}</span>
                       <button
                         onClick={() => removeItem(item.productId)}
                         className="text-red-400/50 hover:text-red-400 transition-colors"
@@ -129,27 +131,31 @@ export default function Cart() {
               <div className="space-y-3 pb-4 border-b border-white/5">
                 <div className="flex justify-between text-sm">
                   <span className="text-white/60">Subtotal ({count} items)</span>
-                  <span className="text-white">${subtotal.toFixed(2)}</span>
+                  <span className="text-white">{formatPrice(subtotal)}</span>
                 </div>
                 <div className="flex justify-between text-sm">
                   <span className="text-white/60">Shipping</span>
                   {shipping === 0
                     ? <span className="text-green-400 font-medium">FREE</span>
-                    : <span className="text-white">${shipping.toFixed(2)}</span>
+                    : <span className="text-white">{formatPrice(shipping)}</span>
                   }
                 </div>
                 {subtotal < 100 && (
-                  <p className="text-white/40 text-xs">Add ${(100 - subtotal).toFixed(2)} more for free shipping</p>
+                  <p className="text-white/40 text-xs">
+                    {lang === 'ar'
+                      ? `أضف ${formatPrice(100 - subtotal)} للحصول على شحن مجاني`
+                      : `Add ${formatPrice(100 - subtotal)} more for free shipping`}
+                  </p>
                 )}
                 <div className="flex justify-between text-sm">
                   <span className="text-white/60">Tax (5%)</span>
-                  <span className="text-white">${tax.toFixed(2)}</span>
+                  <span className="text-white">{formatPrice(tax)}</span>
                 </div>
               </div>
 
               <div className="flex justify-between items-center py-4 border-b border-white/5">
                 <span className="text-white font-bold text-lg">Total</span>
-                <span className="text-[#D4AF37] font-bold text-xl">${total.toFixed(2)}</span>
+                <span className="text-[#D4AF37] font-bold text-xl">{formatPrice(total)}</span>
               </div>
 
               <button

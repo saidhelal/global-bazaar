@@ -20,6 +20,7 @@ import Checkout from "@/pages/checkout/Checkout";
 import OrderHistory from "@/pages/orders/OrderHistory";
 import OrderDetail from "@/pages/orders/OrderDetail";
 import { LanguageProvider } from "./contexts/LanguageContext";
+import { CurrencyProvider } from "./contexts/CurrencyContext";
 import { AuthProvider } from "./contexts/AuthContext";
 import { CartProvider } from "./contexts/CartContext";
 
@@ -62,18 +63,20 @@ function Router() {
 function App() {
   return (
     <LanguageProvider>
-      <AuthProvider>
-        <CartProvider>
-          <QueryClientProvider client={queryClient}>
-            <TooltipProvider>
-              <WouterRouter base={import.meta.env.BASE_URL?.replace(/\/$/, "") || ""}>
-                <Router />
-              </WouterRouter>
-              <Toaster />
-            </TooltipProvider>
-          </QueryClientProvider>
-        </CartProvider>
-      </AuthProvider>
+      <CurrencyProvider>
+        <AuthProvider>
+          <CartProvider>
+            <QueryClientProvider client={queryClient}>
+              <TooltipProvider>
+                <WouterRouter base={import.meta.env.BASE_URL?.replace(/\/$/, "") || ""}>
+                  <Router />
+                </WouterRouter>
+                <Toaster />
+              </TooltipProvider>
+            </QueryClientProvider>
+          </CartProvider>
+        </AuthProvider>
+      </CurrencyProvider>
     </LanguageProvider>
   );
 }

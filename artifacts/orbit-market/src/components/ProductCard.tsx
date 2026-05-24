@@ -2,6 +2,7 @@ import { ShoppingCart, Star } from 'lucide-react';
 import { Link } from 'wouter';
 import { useCart } from '../contexts/CartContext';
 import { useLanguage } from '../contexts/LanguageContext';
+import { useCurrency } from '../contexts/CurrencyContext';
 import type { Product } from '../hooks/useProducts';
 
 function StarRating({ rating, count }: { rating: string | null | undefined; count: number | null | undefined }) {
@@ -32,6 +33,7 @@ interface ProductCardProps {
 
 export default function ProductCard({ product, className = '' }: ProductCardProps) {
   const { lang } = useLanguage();
+  const { formatPrice } = useCurrency();
   const { addItem, isInCart, getQuantity } = useCart();
   const inCart = isInCart(product.id);
   const qty = getQuantity(product.id);
@@ -92,9 +94,9 @@ export default function ProductCard({ product, className = '' }: ProductCardProp
 
           {/* Price */}
           <div className="flex items-baseline gap-2">
-            <span className="text-[#D4AF37] font-bold text-base">${price.toFixed(2)}</span>
+            <span className="text-[#D4AF37] font-bold text-base">{formatPrice(price)}</span>
             {compareAt && (
-              <span className="text-white/30 text-xs line-through">${compareAt.toFixed(2)}</span>
+              <span className="text-white/30 text-xs line-through">{formatPrice(compareAt)}</span>
             )}
           </div>
 

@@ -6,6 +6,7 @@ import Footer from '../../components/Footer';
 import { useAuth } from '../../contexts/AuthContext';
 import { apiFetch } from '../../contexts/AuthContext';
 import { useLanguage } from '../../contexts/LanguageContext';
+import { useCurrency } from '../../contexts/CurrencyContext';
 
 interface Order {
   id: number;
@@ -31,6 +32,7 @@ const STATUS_COLORS: Record<string, string> = {
 export default function OrderHistory() {
   const { user } = useAuth();
   const { lang, dir } = useLanguage();
+  const { formatPrice } = useCurrency();
   const [, setLocation] = useLocation();
   const [orders, setOrders] = useState<Order[]>([]);
   const [loading, setLoading] = useState(true);
@@ -107,7 +109,7 @@ export default function OrderHistory() {
                       </div>
                     </div>
                     <div className="flex flex-col items-end gap-2 flex-shrink-0">
-                      <span className="text-[#D4AF37] font-bold text-lg">${parseFloat(order.total).toFixed(2)}</span>
+                      <span className="text-[#D4AF37] font-bold text-lg">{formatPrice(parseFloat(order.total))}</span>
                       <ChevronRight className="w-5 h-5 text-white/30 group-hover:text-white/60 transition-colors" />
                     </div>
                   </div>

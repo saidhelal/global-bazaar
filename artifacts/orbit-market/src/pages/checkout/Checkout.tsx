@@ -10,6 +10,7 @@ import Header from '../../components/Header';
 import Footer from '../../components/Footer';
 import { useCart } from '../../contexts/CartContext';
 import { useLanguage } from '../../contexts/LanguageContext';
+import { useCurrency } from '../../contexts/CurrencyContext';
 import { useAuth } from '../../contexts/AuthContext';
 import { apiFetch } from '../../contexts/AuthContext';
 import StripePaymentForm from '../../components/payments/StripePaymentForm';
@@ -114,6 +115,7 @@ const GATEWAY_ICONS: Record<Gateway, React.ReactNode> = {
 export default function Checkout() {
   const { items, subtotal, clearCart } = useCart();
   const { lang, dir } = useLanguage();
+  const { formatPrice } = useCurrency();
   const { user } = useAuth();
   const [, setLocation] = useLocation();
   const t = T[lang as 'en' | 'ar'] || T.en;
@@ -528,7 +530,7 @@ export default function Checkout() {
                         <p className="text-white text-sm truncate">{item.title}</p>
                         <p className="text-white/40 text-xs">Qty: {item.quantity}</p>
                       </div>
-                      <p className="text-[#D4AF37] text-sm font-semibold">${(item.price * item.quantity).toFixed(2)}</p>
+                      <p className="text-[#D4AF37] text-sm font-semibold">{formatPrice(item.price * item.quantity)}</p>
                     </div>
                   ))}
                 </div>
@@ -552,7 +554,7 @@ export default function Checkout() {
                     {loading ? (
                       <><Loader2 className="w-4 h-4 animate-spin" /> {t.placing}</>
                     ) : (
-                      <><ShieldCheck className="w-4 h-4" /> {t.placeOrder} · ${total.toFixed(2)}</>
+                      <><ShieldCheck className="w-4 h-4" /> {t.placeOrder} · {formatPrice(total)}</>
                     )}
                   </button>
                 </div>
@@ -630,26 +632,26 @@ export default function Checkout() {
                       </span>
                     </div>
                     <p className="flex-1 text-white/70 text-xs line-clamp-2">{item.title}</p>
-                    <p className="text-white text-xs font-semibold flex-shrink-0">${(item.price * item.quantity).toFixed(2)}</p>
+                    <p className="text-white text-xs font-semibold flex-shrink-0">{formatPrice(item.price * item.quantity)}</p>
                   </div>
                 ))}
               </div>
               <div className="border-t border-white/5 pt-4 space-y-2">
                 <div className="flex justify-between text-sm">
                   <span className="text-white/60">{t.subtotal}</span>
-                  <span className="text-white">${subtotal.toFixed(2)}</span>
+                  <span className="text-white">{formatPrice(subtotal)}</span>
                 </div>
                 <div className="flex justify-between text-sm">
                   <span className="text-white/60">{t.shipping2}</span>
-                  {shipping === 0 ? <span className="text-green-400">{t.free}</span> : <span className="text-white">${shipping.toFixed(2)}</span>}
+                  {shipping === 0 ? <span className="text-green-400">{t.free}</span> : <span className="text-white">{formatPrice(shipping)}</span>}
                 </div>
                 <div className="flex justify-between text-sm">
                   <span className="text-white/60">{t.tax}</span>
-                  <span className="text-white">${tax.toFixed(2)}</span>
+                  <span className="text-white">{formatPrice(tax)}</span>
                 </div>
                 <div className="flex justify-between font-bold text-base border-t border-white/5 pt-3 mt-2">
                   <span className="text-white">{t.total}</span>
-                  <span className="text-[#D4AF37]">${total.toFixed(2)}</span>
+                  <span className="text-[#D4AF37]">{formatPrice(total)}</span>
                 </div>
               </div>
               {/* Security badges */}

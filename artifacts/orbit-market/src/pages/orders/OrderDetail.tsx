@@ -9,6 +9,7 @@ import Footer from '../../components/Footer';
 import { useAuth } from '../../contexts/AuthContext';
 import { apiFetch } from '../../contexts/AuthContext';
 import { useLanguage } from '../../contexts/LanguageContext';
+import { useCurrency } from '../../contexts/CurrencyContext';
 
 interface OrderItem {
   id: number;
@@ -90,6 +91,7 @@ export default function OrderDetail() {
   const { id } = useParams<{ id: string }>();
   const { user } = useAuth();
   const { lang, dir } = useLanguage();
+  const { formatPrice } = useCurrency();
   const [, setLocation] = useLocation();
   const search = useSearch();
   const searchParams = new URLSearchParams(search);
@@ -256,10 +258,10 @@ export default function OrderDetail() {
                 />
                 <div className="flex-1 min-w-0">
                   <p className="text-white text-sm font-medium truncate">{item.title}</p>
-                  <p className="text-white/40 text-xs mt-0.5">${parseFloat(item.price).toFixed(2)} × {item.quantity}</p>
+                  <p className="text-white/40 text-xs mt-0.5">{formatPrice(parseFloat(item.price))} × {item.quantity}</p>
                 </div>
                 <p className="text-[#D4AF37] font-semibold text-sm flex-shrink-0">
-                  ${parseFloat(item.subtotal).toFixed(2)}
+                  {formatPrice(parseFloat(item.subtotal))}
                 </p>
               </div>
             ))}
@@ -316,22 +318,22 @@ export default function OrderDetail() {
           <div className="space-y-2 text-sm">
             <div className="flex justify-between">
               <span className="text-white/60">{lang === 'ar' ? 'المجموع الفرعي' : 'Subtotal'}</span>
-              <span className="text-white">${parseFloat(order.subtotal).toFixed(2)}</span>
+              <span className="text-white">{formatPrice(parseFloat(order.subtotal))}</span>
             </div>
             <div className="flex justify-between">
               <span className="text-white/60">{lang === 'ar' ? 'الشحن' : 'Shipping'}</span>
               {parseFloat(order.shippingCost) === 0
                 ? <span className="text-green-400">{lang === 'ar' ? 'مجاناً' : 'FREE'}</span>
-                : <span className="text-white">${parseFloat(order.shippingCost).toFixed(2)}</span>
+                : <span className="text-white">{formatPrice(parseFloat(order.shippingCost))}</span>
               }
             </div>
             <div className="flex justify-between">
               <span className="text-white/60">{lang === 'ar' ? 'الضريبة' : 'Tax'}</span>
-              <span className="text-white">${parseFloat(order.tax).toFixed(2)}</span>
+              <span className="text-white">{formatPrice(parseFloat(order.tax))}</span>
             </div>
             <div className="flex justify-between font-bold text-base border-t border-white/5 pt-3 mt-2">
               <span className="text-white">{lang === 'ar' ? 'الإجمالي' : 'Total'}</span>
-              <span className="text-[#D4AF37]">${parseFloat(order.total).toFixed(2)}</span>
+              <span className="text-[#D4AF37]">{formatPrice(parseFloat(order.total))}</span>
             </div>
           </div>
         </div>

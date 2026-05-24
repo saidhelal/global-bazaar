@@ -3,6 +3,7 @@ import { ShoppingCart, User, Search, MapPin, ChevronDown, Menu, X, Globe, LogOut
 import { useLanguage } from '../contexts/LanguageContext';
 import { useAuth } from '../contexts/AuthContext';
 import { useCart } from '../contexts/CartContext';
+import { useCurrency, ALL_CURRENCIES, CURRENCY_META, type Currency } from '../contexts/CurrencyContext';
 import { Link, useLocation } from 'wouter';
 
 const categoryOptions = {
@@ -16,12 +17,15 @@ export default function Header() {
   const { t, lang, toggleLanguage, dir } = useLanguage();
   const { user, logout } = useAuth();
   const { count: cartCount } = useCart();
+  const { currency, setCurrency } = useCurrency();
   const [, setLocation] = useLocation();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [selectedCategory, setSelectedCategory] = useState(0);
   const [userMenuOpen, setUserMenuOpen] = useState(false);
+  const [currencyMenuOpen, setCurrencyMenuOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const userMenuRef = useRef<HTMLDivElement>(null);
+  const currencyMenuRef = useRef<HTMLDivElement>(null);
 
   const cats = categoryOptions[lang];
 
@@ -29,6 +33,9 @@ export default function Header() {
     function handleClick(e: MouseEvent) {
       if (userMenuRef.current && !userMenuRef.current.contains(e.target as Node)) {
         setUserMenuOpen(false);
+      }
+      if (currencyMenuRef.current && !currencyMenuRef.current.contains(e.target as Node)) {
+        setCurrencyMenuOpen(false);
       }
     }
     document.addEventListener('mousedown', handleClick);
@@ -82,6 +89,44 @@ export default function Header() {
           </span>
         </div>
         <div className="flex items-center gap-4">
+          {/* Currency switcher */}
+          <div className="relative" ref={currencyMenuRef}>
+            <button
+              onClick={() => setCurrencyMenuOpen(v => !v)}
+              className="flex items-center gap-1 hover:text-primary transition-colors"
+              data-testid="button-currency-switcher"
+            >
+              <span>{CURRENCY_META[currency].flag}</span>
+              <span className="font-semibold">{currency}</span>
+              <ChevronDown className="w-3 h-3" />
+            </button>
+            {currencyMenuOpen && (
+              <div className="absolute top-full mt-1 right-0 rtl:right-auto rtl:left-0 w-44 bg-[#112240] border border-white/10 rounded-lg shadow-xl z-50 overflow-hidden py-1">
+                {ALL_CURRENCIES.map(c => {
+                  const meta = CURRENCY_META[c];
+                  return (
+                    <button
+                      key={c}
+                      onClick={() => { setCurrency(c as Currency); setCurrencyMenuOpen(false); }}
+                      className={`w-full flex items-center gap-2.5 px-3 py-2 text-sm transition-colors ${
+                        currency === c
+                          ? 'bg-primary/15 text-primary font-semibold'
+                          : 'text-white/70 hover:bg-white/5 hover:text-white'
+                      }`}
+                    >
+                      <span className="text-base leading-none">{meta.flag}</span>
+                      <span className="font-mono font-semibold text-xs w-8">{c}</span>
+                      <span className="text-white/40 text-xs">
+                        {lang === 'ar' ? meta.symbolAr : meta.symbolEn}
+                      </span>
+                      {currency === c && <span className="ml-auto text-primary text-xs">✓</span>}
+                    </button>
+                  );
+                })}
+              </div>
+            )}
+          </div>
+
           <Link href="/orders" className="hover:text-primary transition-colors hidden sm:block" data-testid="button-returns-top">
             {t('common.returns')}
           </Link>
@@ -327,6 +372,27 @@ export default function Header() {
                 {t(`nav.${key}`)}
               </button>
             ))}
+          </div>
+
+          {/* Mobile currency switcher */}
+          <div>
+            <p className="text-white/40 text-xs mb-1.5">{lang === 'ar' ? 'العملة' : 'Currency'}</p>
+            <div className="flex gap-2 flex-wrap">
+              {ALL_CURRENCIES.map(c => (
+                <button
+                  key={c}
+                  onClick={() => setCurrency(c as Currency)}
+                  className={`flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs border transition-colors ${
+                    currency === c
+                      ? 'bg-primary/15 border-primary/40 text-primary font-semibold'
+                      : 'bg-[#112240] border-white/10 text-white/70 hover:border-white/30'
+                  }`}
+                >
+                  <span>{CURRENCY_META[c].flag}</span>
+                  <span>{c}</span>
+                </button>
+              ))}
+            </div>
           </div>
           {user ? (
             <div className="flex gap-2">
