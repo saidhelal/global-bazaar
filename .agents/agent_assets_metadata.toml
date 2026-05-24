@@ -1,0 +1,8 @@
+uploads = []
+outputs = []
+
+[[generated]]
+id = "i0AoArj1gdXoQCp67qgTH"
+uri = "file://artifacts/orbit-market/public/hero-bg.png"
+type = "image"
+title = "Luxury global ecommerce hero background"
