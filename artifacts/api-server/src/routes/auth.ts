@@ -5,6 +5,7 @@ import { usersTable } from "@workspace/db/schema";
 import { eq } from "drizzle-orm";
 import { signToken, requireAuth } from "../middlewares/auth";
 import { z } from "zod";
+import { notifyUser, notifyAdmins } from "../lib/notify";
 
 const router = Router();
 
@@ -70,6 +71,28 @@ router.post("/register", async (req, res) => {
     const token = signToken({ userId: user.id, email: user.email, role: user.role });
     res.cookie("orbit_token", token, COOKIE_OPTIONS);
     res.status(201).json({ user: safeUser(user), token });
+
+    // Welcome notification
+    notifyUser(user.id, user.email, user.fullName, {
+      type: "system",
+      title: "Welcome to Orbit Market!",
+      titleAr: "مرحباً بك في أوربت ماركت!",
+      message: "Your account has been created successfully. Start shopping or explore vendor options.",
+      messageAr: "تم إنشاء حسابك بنجاح. ابدأ التسوق أو استكشف خيارات البائعين.",
+      link: "/products",
+    }).catch(() => {});
+
+    // Alert admins about new vendor registration
+    if (data.role === "vendor") {
+      notifyAdmins({
+        type: "new_vendor",
+        title: `New vendor: ${data.fullName}`,
+        titleAr: `بائع جديد: ${data.fullName}`,
+        message: `${data.fullName} (${data.email}) registered as a vendor${data.storeName ? ` — store: "${data.storeName}"` : ""}. Pending approval.`,
+        messageAr: `${data.fullName} (${data.email}) سجّل كبائع${data.storeName ? ` — المتجر: "${data.storeName}"` : ""}. بانتظار الموافقة.`,
+        link: "/dashboard/vendors",
+      }).catch(() => {});
+    }
   } catch (err: any) {
     if (err?.name === "ZodError") {
       res.status(400).json({ error: "Validation failed", details: err.errors });
@@ -217,6 +240,15 @@ router.put("/admin/users/:id/approve", requireAuth, async (req, res) => {
     const id = parseInt(req.params["id"]!);
     const [user] = await db.update(usersTable).set({ isVendorApproved: true }).where(eq(usersTable.id, id)).returning();
     res.json({ user: safeUser(user) });
+    notifyUser(user.id, user.email, user.fullName, {
+      type: "vendor_approved",
+      title: "Your store has been approved!",
+      titleAr: "تمت الموافقة على متجرك!",
+      message: `Congratulations! Your vendor account has been approved. You can now list products on Orbit Market.`,
+      messageAr: "تهانينا! تمت الموافقة على حسابك كبائع. يمكنك الآن إدراج المنتجات في أوربت ماركت.",
+      link: "/dashboard",
+      sendEmail: true,
+    }).catch(() => {});
   } catch {
     res.status(500).json({ error: "Failed to approve vendor" });
   }

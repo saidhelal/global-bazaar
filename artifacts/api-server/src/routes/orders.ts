@@ -1,9 +1,10 @@
 import { Router } from "express";
 import { db } from "@workspace/db";
-import { ordersTable, orderItemsTable } from "@workspace/db/schema";
-import { eq, desc } from "drizzle-orm";
+import { ordersTable, orderItemsTable, usersTable } from "@workspace/db/schema";
+import { eq, desc, inArray } from "drizzle-orm";
 import { z } from "zod";
 import { requireAuth } from "../middlewares/auth";
+import { notifyUser, notifyAdmins, createNotification } from "../lib/notify";
 
 const router = Router();
 
@@ -72,6 +73,55 @@ router.post("/", requireAuth, async (req, res) => {
     );
 
     res.status(201).json({ order });
+
+    // Fire-and-forget notifications
+    (async () => {
+      try {
+        // Fetch customer info
+        const [customer] = await db.select({ email: usersTable.email, fullName: usersTable.fullName })
+          .from(usersTable).where(eq(usersTable.id, req.user!.userId)).limit(1);
+
+        // Notify customer
+        if (customer) {
+          await notifyUser(req.user!.userId, customer.email, customer.fullName, {
+            type: "order_created",
+            title: `Order #${order.id} Placed`,
+            titleAr: `تم إنشاء الطلب #${order.id}`,
+            message: `Your order of ${data.items.length} item(s) totalling $${total.toFixed(2)} has been placed successfully.`,
+            messageAr: `تم إنشاء طلبك بنجاح الذي يحتوي على ${data.items.length} منتج/منتجات بإجمالي $${total.toFixed(2)}.`,
+            link: `/orders/${order.id}`,
+            sendEmail: true,
+          });
+        }
+
+        // Notify each unique vendor in the order
+        const vendorIds = [...new Set(data.items.map(i => i.vendorId))];
+        const vendors = await db.select({ id: usersTable.id, email: usersTable.email, fullName: usersTable.fullName })
+          .from(usersTable).where(inArray(usersTable.id, vendorIds));
+        for (const vendor of vendors) {
+          const vendorItems = data.items.filter(i => i.vendorId === vendor.id);
+          await notifyUser(vendor.id, vendor.email, vendor.fullName, {
+            type: "new_order",
+            title: `New Order #${order.id}`,
+            titleAr: `طلب جديد #${order.id}`,
+            message: `You have a new order for ${vendorItems.length} item(s). Please process it promptly.`,
+            messageAr: `لديك طلب جديد يحتوي على ${vendorItems.length} منتج/منتجات. يرجى معالجته في أقرب وقت.`,
+            link: `/dashboard/orders`,
+            sendEmail: true,
+          });
+        }
+
+        // Notify admins
+        await notifyAdmins({
+          type: "new_order",
+          title: `New Order #${order.id} — $${total.toFixed(2)}`,
+          titleAr: `طلب جديد #${order.id} — $${total.toFixed(2)}`,
+          message: `A new order was placed by ${customer?.fullName || "a customer"} for $${total.toFixed(2)}.`,
+          messageAr: `تم تقديم طلب جديد بواسطة ${customer?.fullName || "عميل"} بقيمة $${total.toFixed(2)}.`,
+          link: `/dashboard/orders`,
+        });
+      } catch {}
+    })();
   } catch (err: any) {
     if (err?.name === "ZodError") res.status(400).json({ error: "Invalid order data", details: err.errors });
     else res.status(500).json({ error: "Failed to create order" });

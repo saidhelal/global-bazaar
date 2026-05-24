@@ -22,10 +22,12 @@ import OrderDetail from "@/pages/orders/OrderDetail";
 import TrackShipment from "@/pages/track/TrackShipment";
 import VendorShipping from "@/pages/dashboard/vendor/VendorShipping";
 import ShippingZones from "@/pages/dashboard/admin/ShippingZones";
+import NotificationsPage from "@/pages/notifications/NotificationsPage";
 import { LanguageProvider } from "./contexts/LanguageContext";
 import { CurrencyProvider } from "./contexts/CurrencyContext";
 import { AuthProvider } from "./contexts/AuthContext";
 import { CartProvider } from "./contexts/CartContext";
+import { NotificationProvider } from "./contexts/NotificationContext";
 
 const queryClient = new QueryClient();
 
@@ -61,6 +63,9 @@ function Router() {
       <Route path="/track/:number" component={TrackShipment} />
       <Route path="/track" component={TrackShipment} />
 
+      {/* Notifications */}
+      <Route path="/notifications" component={NotificationsPage} />
+
       {/* Generic dashboard (role-based) */}
       <Route path="/dashboard" component={Dashboard} />
       <Route path="/dashboard/:rest*" component={Dashboard} />
@@ -76,16 +81,18 @@ function App() {
     <LanguageProvider>
       <CurrencyProvider>
         <AuthProvider>
-          <CartProvider>
-            <QueryClientProvider client={queryClient}>
-              <TooltipProvider>
-                <WouterRouter base={import.meta.env.BASE_URL?.replace(/\/$/, "") || ""}>
-                  <Router />
-                </WouterRouter>
-                <Toaster />
-              </TooltipProvider>
-            </QueryClientProvider>
-          </CartProvider>
+          <NotificationProvider>
+            <CartProvider>
+              <QueryClientProvider client={queryClient}>
+                <TooltipProvider>
+                  <WouterRouter base={import.meta.env.BASE_URL?.replace(/\/$/, "") || ""}>
+                    <Router />
+                  </WouterRouter>
+                  <Toaster />
+                </TooltipProvider>
+              </QueryClientProvider>
+            </CartProvider>
+          </NotificationProvider>
         </AuthProvider>
       </CurrencyProvider>
     </LanguageProvider>

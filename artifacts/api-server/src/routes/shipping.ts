@@ -6,10 +6,12 @@ import {
   shipmentsTable,
   shipmentEventsTable,
   ordersTable,
+  usersTable,
 } from "@workspace/db/schema";
 import { eq, desc, and } from "drizzle-orm";
 import { z } from "zod";
 import { requireAuth } from "../middlewares/auth";
+import { notifyUser } from "../lib/notify";
 
 const router = Router();
 
@@ -356,6 +358,28 @@ router.post("/", requireAuth, async (req, res) => {
       .where(eq(ordersTable.id, data.orderId));
 
     res.status(201).json({ shipment });
+
+    // Notify customer about shipment
+    (async () => {
+      try {
+        const [order] = await db.select({ userId: ordersTable.userId }).from(ordersTable).where(eq(ordersTable.id, data.orderId)).limit(1);
+        if (order?.userId) {
+          const [customer] = await db.select({ email: usersTable.email, fullName: usersTable.fullName })
+            .from(usersTable).where(eq(usersTable.id, order.userId)).limit(1);
+          if (customer) {
+            await notifyUser(order.userId, customer.email, customer.fullName, {
+              type: "shipment_created",
+              title: `Order #${data.orderId} Shipped!`,
+              titleAr: `تم شحن الطلب #${data.orderId}!`,
+              message: `Your order has been shipped via ${data.carrier}. Tracking number: ${trackingNumber}`,
+              messageAr: `تم شحن طلبك عبر ${data.carrier}. رقم التتبع: ${trackingNumber}`,
+              link: `/track/${trackingNumber}`,
+              sendEmail: true,
+            });
+          }
+        }
+      } catch {}
+    })();
   } catch (err: any) {
     if (err?.name === "ZodError") res.status(400).json({ error: "Invalid data", details: err.errors });
     else res.status(500).json({ error: "Failed to create shipment" });
@@ -447,6 +471,37 @@ router.post("/:id/events", requireAuth, async (req, res) => {
     }
 
     res.status(201).json({ event, shipment });
+
+    // Notify customer about tracking update
+    (async () => {
+      try {
+        const [order] = await db.select({ userId: ordersTable.userId }).from(ordersTable).where(eq(ordersTable.id, shipment.orderId)).limit(1);
+        if (order?.userId) {
+          const [customer] = await db.select({ email: usersTable.email, fullName: usersTable.fullName })
+            .from(usersTable).where(eq(usersTable.id, order.userId)).limit(1);
+          if (customer) {
+            const statusLabels: Record<string, { en: string; ar: string }> = {
+              picked_up:        { en: "Picked Up",         ar: "تم الاستلام" },
+              in_transit:       { en: "In Transit",        ar: "في الطريق" },
+              out_for_delivery: { en: "Out for Delivery",  ar: "خارج للتسليم" },
+              delivered:        { en: "Delivered",         ar: "تم التسليم" },
+              failed_delivery:  { en: "Delivery Failed",   ar: "فشل التسليم" },
+              returned:         { en: "Returned",          ar: "مُعاد" },
+            };
+            const label = statusLabels[data.status] || { en: data.status, ar: data.status };
+            await notifyUser(order.userId, customer.email, customer.fullName, {
+              type: "shipment_update",
+              title: `Shipment Update: ${label.en}`,
+              titleAr: `تحديث الشحنة: ${label.ar}`,
+              message: `Your shipment (${shipment.trackingNumber}) status: ${label.en}${data.location ? ` — ${data.location}` : ""}.`,
+              messageAr: `حالة شحنتك (${shipment.trackingNumber}): ${label.ar}${data.locationAr ? ` — ${data.locationAr}` : ""}.`,
+              link: `/track/${shipment.trackingNumber}`,
+              sendEmail: data.status === "delivered" || data.status === "out_for_delivery",
+            });
+          }
+        }
+      } catch {}
+    })();
   } catch (err: any) {
     if (err?.name === "ZodError") res.status(400).json({ error: "Invalid data", details: err.errors });
     else res.status(500).json({ error: "Failed to add event" });

@@ -1,6 +1,7 @@
 import { Router } from "express";
+import { notifyUser } from "../lib/notify";
 import { db } from "@workspace/db";
-import { productsTable } from "@workspace/db/schema";
+import { productsTable, usersTable } from "@workspace/db/schema";
 import { eq, and, desc, asc, ilike, or, sql } from "drizzle-orm";
 import { z } from "zod";
 import { requireAuth } from "../middlewares/auth";
@@ -234,6 +235,20 @@ router.put("/admin/products/:id/approve", requireAuth, async (req, res) => {
       .where(eq(productsTable.id, id))
       .returning();
     res.json({ product });
+    // Notify vendor
+    const [vendor] = await db.select({ email: usersTable.email, fullName: usersTable.fullName })
+      .from(usersTable).where(eq(usersTable.id, product.vendorId)).limit(1);
+    if (vendor) {
+      notifyUser(product.vendorId, vendor.email, vendor.fullName, {
+        type: "product_approved",
+        title: `Product Approved: ${product.title}`,
+        titleAr: `تمت الموافقة على المنتج: ${product.titleAr || product.title}`,
+        message: `Your product "${product.title}" has been approved and is now live on the marketplace.`,
+        messageAr: `تمت الموافقة على منتجك "${product.titleAr || product.title}" وهو الآن متاح في السوق.`,
+        link: `/products/${product.id}`,
+        sendEmail: true,
+      }).catch(() => {});
+    }
   } catch {
     res.status(500).json({ error: "Failed to approve product" });
   }
@@ -250,6 +265,20 @@ router.put("/admin/products/:id/reject", requireAuth, async (req, res) => {
       .where(eq(productsTable.id, id))
       .returning();
     res.json({ product });
+    // Notify vendor
+    const [vendor] = await db.select({ email: usersTable.email, fullName: usersTable.fullName })
+      .from(usersTable).where(eq(usersTable.id, product.vendorId)).limit(1);
+    if (vendor) {
+      notifyUser(product.vendorId, vendor.email, vendor.fullName, {
+        type: "product_rejected",
+        title: `Product Needs Changes: ${product.title}`,
+        titleAr: `المنتج يحتاج إلى تعديلات: ${product.titleAr || product.title}`,
+        message: `Your product "${product.title}" was not approved. Reason: ${reason}`,
+        messageAr: `لم تتم الموافقة على منتجك "${product.titleAr || product.title}". السبب: ${reason}`,
+        link: `/dashboard/products`,
+        sendEmail: true,
+      }).catch(() => {});
+    }
   } catch (err: any) {
     if (err?.name === "ZodError") res.status(400).json({ error: "Rejection reason required" });
     else res.status(500).json({ error: "Failed to reject product" });

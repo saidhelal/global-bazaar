@@ -5,6 +5,7 @@ import { useAuth } from '../contexts/AuthContext';
 import { useCart } from '../contexts/CartContext';
 import { useCurrency, ALL_CURRENCIES, CURRENCY_META, type Currency } from '../contexts/CurrencyContext';
 import { Link, useLocation } from 'wouter';
+import NotificationBell from './NotificationBell';
 
 const categoryOptions = {
   en: ['All Categories', 'Electronics', 'Fashion', 'Home & Living', 'Beauty', 'Sports', 'Books', 'Automotive'],
@@ -287,6 +288,9 @@ export default function Header() {
             <span className="text-white/60 text-[10px] leading-tight">{lang === 'en' ? 'Returns' : 'المرتجعات'}</span>
             <span className="text-white text-xs font-bold">{lang === 'en' ? '& Orders' : 'والطلبات'}</span>
           </Link>
+
+          {/* Notification Bell (only when logged in) */}
+          {user && <NotificationBell />}
 
           {/* Cart */}
           <Link href="/cart" className="flex items-end gap-1 hover:border hover:border-white/30 rounded p-1 transition-all"
