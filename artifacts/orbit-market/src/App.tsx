@@ -9,6 +9,10 @@ import Register from "@/pages/auth/Register";
 import ForgotPassword from "@/pages/auth/ForgotPassword";
 import Dashboard from "@/pages/dashboard/Dashboard";
 import ProfileSettings from "@/pages/ProfileSettings";
+import ProductsList from "@/pages/dashboard/vendor/ProductsList";
+import ProductForm from "@/pages/dashboard/vendor/ProductForm";
+import EditProduct from "@/pages/dashboard/vendor/EditProduct";
+import ProductModeration from "@/pages/dashboard/admin/ProductModeration";
 import { LanguageProvider } from "./contexts/LanguageContext";
 import { AuthProvider } from "./contexts/AuthContext";
 
@@ -21,8 +25,19 @@ function Router() {
       <Route path="/login" component={Login} />
       <Route path="/register" component={Register} />
       <Route path="/forgot-password" component={ForgotPassword} />
+
+      {/* Vendor product routes */}
+      <Route path="/dashboard/products/new" component={() => <ProductForm />} />
+      <Route path="/dashboard/products/:id/edit" component={EditProduct} />
+      <Route path="/dashboard/products" component={ProductsList} />
+
+      {/* Admin routes */}
+      <Route path="/dashboard/moderation" component={ProductModeration} />
+
+      {/* Generic dashboard (role-based) */}
       <Route path="/dashboard" component={Dashboard} />
       <Route path="/dashboard/:rest*" component={Dashboard} />
+
       <Route path="/profile/settings" component={ProfileSettings} />
       <Route component={NotFound} />
     </Switch>
