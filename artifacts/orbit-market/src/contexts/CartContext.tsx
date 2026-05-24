@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
+import React, { createContext, useContext, useState, useEffect, useCallback, useMemo } from 'react';
 
 export interface CartItem {
   productId: number;
@@ -87,11 +87,18 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const getQuantity = useCallback((productId: number) =>
     items.find(i => i.productId === productId)?.quantity ?? 0, [items]);
 
-  const count = items.reduce((s, i) => s + i.quantity, 0);
-  const subtotal = items.reduce((s, i) => s + i.price * i.quantity, 0);
+  // Memoized derived values — only recompute when items change
+  const count    = useMemo(() => items.reduce((s, i) => s + i.quantity, 0), [items]);
+  const subtotal = useMemo(() => items.reduce((s, i) => s + i.price * i.quantity, 0), [items]);
+
+  // Memoized context value — prevents re-rendering all consumers on unrelated state changes
+  const contextValue = useMemo<CartContextType>(() => ({
+    items, count, subtotal,
+    addItem, removeItem, updateQuantity, clearCart, isInCart, getQuantity,
+  }), [items, count, subtotal, addItem, removeItem, updateQuantity, clearCart, isInCart, getQuantity]);
 
   return (
-    <CartContext.Provider value={{ items, count, subtotal, addItem, removeItem, updateQuantity, clearCart, isInCart, getQuantity }}>
+    <CartContext.Provider value={contextValue}>
       {children}
     </CartContext.Provider>
   );

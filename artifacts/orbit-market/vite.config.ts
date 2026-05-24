@@ -57,6 +57,23 @@ export default defineConfig({
   build: {
     outDir: path.resolve(import.meta.dirname, "dist/public"),
     emptyOutDir: true,
+    target: 'esnext',
+    reportCompressedSize: false,
+    chunkSizeWarningLimit: 1000,
+    rollupOptions: {
+      output: {
+        manualChunks(id: string) {
+          if (!id.includes('node_modules')) return;
+          if (id.includes('react-dom') || id.includes('scheduler')) return 'vendor-react';
+          if (id.includes('/react/') || id.includes('react-jsx')) return 'vendor-react';
+          if (id.includes('wouter')) return 'vendor-router';
+          if (id.includes('@tanstack')) return 'vendor-query';
+          if (id.includes('lucide-react')) return 'vendor-icons';
+          if (id.includes('@stripe')) return 'vendor-stripe';
+          if (id.includes('@radix-ui') || id.includes('cmdk') || id.includes('sonner') || id.includes('vaul') || id.includes('class-variance-authority') || id.includes('clsx')) return 'vendor-ui';
+        },
+      },
+    },
   },
   server: {
     port,
