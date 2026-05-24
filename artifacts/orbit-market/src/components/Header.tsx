@@ -1,7 +1,8 @@
 import { useState, useRef, useEffect } from 'react';
-import { ShoppingCart, User, Search, MapPin, ChevronDown, Menu, X, Globe, LogOut, LayoutDashboard, Settings } from 'lucide-react';
+import { ShoppingCart, User, Search, MapPin, ChevronDown, Menu, X, Globe, LogOut, LayoutDashboard, Settings, Package } from 'lucide-react';
 import { useLanguage } from '../contexts/LanguageContext';
 import { useAuth } from '../contexts/AuthContext';
+import { useCart } from '../contexts/CartContext';
 import { Link, useLocation } from 'wouter';
 
 const categoryOptions = {
@@ -9,14 +10,17 @@ const categoryOptions = {
   ar: ['كل الفئات', 'إلكترونيات', 'أزياء', 'المنزل والمعيشة', 'التجميل', 'الرياضة', 'كتب', 'السيارات'],
 };
 
+const categoryValues = ['', 'Electronics', 'Fashion', 'Home & Living', 'Beauty', 'Sports', 'Books', 'Automotive'];
+
 export default function Header() {
   const { t, lang, toggleLanguage, dir } = useLanguage();
   const { user, logout } = useAuth();
+  const { count: cartCount } = useCart();
   const [, setLocation] = useLocation();
-  const [cartCount] = useState(3);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [selectedCategory, setSelectedCategory] = useState(0);
   const [userMenuOpen, setUserMenuOpen] = useState(false);
+  const [searchQuery, setSearchQuery] = useState('');
   const userMenuRef = useRef<HTMLDivElement>(null);
 
   const cats = categoryOptions[lang];
@@ -34,6 +38,30 @@ export default function Header() {
   async function handleLogout() {
     await logout();
     setLocation('/');
+  }
+
+  function handleSearch(e: React.FormEvent) {
+    e.preventDefault();
+    const cat = categoryValues[selectedCategory];
+    const qs = new URLSearchParams();
+    if (searchQuery.trim()) qs.set('search', searchQuery.trim());
+    if (cat) qs.set('category', cat);
+    setLocation(`/products${qs.toString() ? `?${qs.toString()}` : ''}`);
+    setIsMobileMenuOpen(false);
+  }
+
+  function handleCategoryNav(cat: string) {
+    if (cat === 'deals') {
+      setLocation('/products?sort=price_asc');
+    } else {
+      const map: Record<string, string> = {
+        electronics: 'Electronics', fashion: 'Fashion', home: 'Home & Living',
+        beauty: 'Beauty', sports: 'Sports', books: 'Books',
+      };
+      const catVal = map[cat];
+      setLocation(catVal ? `/products?category=${encodeURIComponent(catVal)}` : '/products');
+    }
+    setIsMobileMenuOpen(false);
   }
 
   return (
@@ -54,9 +82,9 @@ export default function Header() {
           </span>
         </div>
         <div className="flex items-center gap-4">
-          <button className="hover:text-primary transition-colors hidden sm:block" data-testid="button-returns-top">
+          <Link href="/orders" className="hover:text-primary transition-colors hidden sm:block" data-testid="button-returns-top">
             {t('common.returns')}
-          </button>
+          </Link>
           {!user && (
             <Link href="/register"
               className="bg-primary text-[#0A1628] font-semibold px-3 py-0.5 rounded text-xs hover:bg-primary/90 transition-colors"
@@ -101,7 +129,7 @@ export default function Header() {
         </button>
 
         {/* Search bar */}
-        <div className="flex flex-1 min-w-0" data-testid="search-container">
+        <form onSubmit={handleSearch} className="flex flex-1 min-w-0" data-testid="search-container">
           <div className="flex w-full rounded overflow-hidden border-2 border-primary focus-within:border-primary shadow-sm">
             <div className="hidden md:flex items-center bg-[#1D3461] border-r border-primary/40 flex-shrink-0">
               <select value={selectedCategory} onChange={(e) => setSelectedCategory(Number(e.target.value))}
@@ -111,15 +139,20 @@ export default function Header() {
               </select>
               <ChevronDown className="w-3 h-3 text-white/60 -ml-5 pointer-events-none rtl:-mr-5 rtl:ml-0" />
             </div>
-            <input type="search" placeholder={t('common.search')}
+            <input
+              type="search"
+              placeholder={t('common.search')}
+              value={searchQuery}
+              onChange={e => setSearchQuery(e.target.value)}
               className="flex-1 bg-white text-[#0A1628] placeholder-gray-400 px-4 py-2.5 text-sm outline-none min-w-0"
-              dir={dir} data-testid="input-search" />
-            <button className="bg-primary hover:bg-primary/90 text-[#0A1628] px-4 flex items-center justify-center flex-shrink-0 transition-colors"
+              dir={dir} data-testid="input-search"
+            />
+            <button type="submit" className="bg-primary hover:bg-primary/90 text-[#0A1628] px-4 flex items-center justify-center flex-shrink-0 transition-colors"
               data-testid="button-search">
               <Search className="w-5 h-5" />
             </button>
           </div>
-        </div>
+        </form>
 
         {/* Right actions */}
         <div className="flex items-center gap-1 md:gap-3 flex-shrink-0">
@@ -176,6 +209,12 @@ export default function Header() {
                       <LayoutDashboard className="w-4 h-4" />
                       {lang === 'en' ? 'Dashboard' : 'لوحة التحكم'}
                     </Link>
+                    <Link href="/orders"
+                      className="flex items-center gap-2.5 px-4 py-2.5 text-white/70 hover:bg-white/5 hover:text-white text-sm transition-colors"
+                      onClick={() => setUserMenuOpen(false)}>
+                      <Package className="w-4 h-4" />
+                      {lang === 'en' ? 'My Orders' : 'طلباتي'}
+                    </Link>
                     <Link href="/profile/settings"
                       className="flex items-center gap-2.5 px-4 py-2.5 text-white/70 hover:bg-white/5 hover:text-white text-sm transition-colors"
                       data-testid="button-go-settings" onClick={() => setUserMenuOpen(false)}>
@@ -196,24 +235,27 @@ export default function Header() {
             </div>
           )}
 
-          {/* Returns */}
-          <button className="hidden lg:flex flex-col items-start rtl:items-end text-left rtl:text-right hover:border hover:border-white/30 rounded p-1 transition-all"
+          {/* Returns & Orders */}
+          <Link href="/orders"
+            className="hidden lg:flex flex-col items-start rtl:items-end text-left rtl:text-right hover:border hover:border-white/30 rounded p-1 transition-all"
             data-testid="button-returns">
             <span className="text-white/60 text-[10px] leading-tight">{lang === 'en' ? 'Returns' : 'المرتجعات'}</span>
             <span className="text-white text-xs font-bold">{lang === 'en' ? '& Orders' : 'والطلبات'}</span>
-          </button>
+          </Link>
 
           {/* Cart */}
-          <button className="flex items-end gap-1 hover:border hover:border-white/30 rounded p-1 transition-all"
+          <Link href="/cart" className="flex items-end gap-1 hover:border hover:border-white/30 rounded p-1 transition-all"
             data-testid="button-cart">
             <div className="relative">
               <ShoppingCart className="w-7 h-7 text-white" />
-              <span className="absolute -top-1.5 left-3 rtl:left-auto rtl:right-3 bg-primary text-[#0A1628] text-xs font-bold w-5 h-5 rounded-full flex items-center justify-center leading-none">
-                {cartCount}
-              </span>
+              {cartCount > 0 && (
+                <span className="absolute -top-1.5 left-3 rtl:left-auto rtl:right-3 bg-primary text-[#0A1628] text-xs font-bold w-5 h-5 rounded-full flex items-center justify-center leading-none">
+                  {cartCount > 99 ? '99+' : cartCount}
+                </span>
+              )}
             </div>
             <span className="text-white text-xs font-bold hidden sm:block">{t('common.cart')}</span>
-          </button>
+          </Link>
 
           {/* Mobile user icon */}
           {user ? (
@@ -233,13 +275,16 @@ export default function Header() {
       {/* ── Category nav bar ── */}
       <div className="bg-[#112240] border-b border-white/5 overflow-x-auto hidden md:block">
         <div className="flex items-center px-4 h-9 gap-1 w-max">
-          <button className="flex items-center gap-1.5 px-3 h-full text-white text-xs font-semibold hover:bg-white/10 rounded transition-colors whitespace-nowrap"
+          <button
+            onClick={() => setLocation('/products')}
+            className="flex items-center gap-1.5 px-3 h-full text-white text-xs font-semibold hover:bg-white/10 rounded transition-colors whitespace-nowrap"
             data-testid="nav-all">
             <Menu className="w-4 h-4" />
             {t('nav.all')}
           </button>
           {(['deals', 'electronics', 'fashion', 'home', 'beauty', 'sports', 'books'] as const).map((key) => (
             <button key={key}
+              onClick={() => handleCategoryNav(key)}
               className="px-3 h-full text-white/80 text-xs hover:bg-white/10 hover:text-primary rounded transition-colors whitespace-nowrap"
               data-testid={`nav-${key}`}>
               {t(`nav.${key}`)}
@@ -264,21 +309,33 @@ export default function Header() {
       {/* Mobile dropdown */}
       {isMobileMenuOpen && (
         <div className="md:hidden bg-[#0A1628] border-t border-white/10 p-4 flex flex-col gap-3">
-          <div className="relative">
+          <form onSubmit={handleSearch} className="relative">
             <Search className="absolute left-3 rtl:left-auto rtl:right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
-            <input type="search" placeholder={t('common.search')}
-              className="w-full bg-white text-[#0A1628] placeholder-gray-400 pl-9 rtl:pl-3 rtl:pr-9 pr-3 py-2.5 text-sm outline-none rounded" dir={dir} />
-          </div>
+            <input
+              type="search"
+              placeholder={t('common.search')}
+              value={searchQuery}
+              onChange={e => setSearchQuery(e.target.value)}
+              className="w-full bg-white text-[#0A1628] placeholder-gray-400 pl-9 rtl:pl-3 rtl:pr-9 pr-3 py-2.5 text-sm outline-none rounded"
+              dir={dir}
+            />
+          </form>
           <div className="flex flex-wrap gap-2">
             {(['deals', 'electronics', 'fashion', 'home', 'beauty'] as const).map((key) => (
-              <button key={key} className="px-3 py-1 bg-[#112240] text-white/80 text-xs rounded border border-white/10">
+              <button key={key} onClick={() => handleCategoryNav(key)}
+                className="px-3 py-1 bg-[#112240] text-white/80 text-xs rounded border border-white/10 hover:border-[#D4AF37]/40 hover:text-white transition-colors">
                 {t(`nav.${key}`)}
               </button>
             ))}
           </div>
           {user ? (
             <div className="flex gap-2">
-              <Link href="/dashboard" className="flex-1 bg-primary/15 text-primary font-semibold py-2 rounded text-sm text-center">
+              <Link href="/orders" onClick={() => setIsMobileMenuOpen(false)}
+                className="flex-1 bg-white/5 text-white font-semibold py-2 rounded text-sm text-center border border-white/10">
+                {lang === 'en' ? 'My Orders' : 'طلباتي'}
+              </Link>
+              <Link href="/dashboard" onClick={() => setIsMobileMenuOpen(false)}
+                className="flex-1 bg-primary/15 text-primary font-semibold py-2 rounded text-sm text-center">
                 {lang === 'en' ? 'Dashboard' : 'لوحة التحكم'}
               </Link>
               <button onClick={handleLogout} className="flex-1 border border-red-500/30 text-red-400 py-2 rounded text-sm">

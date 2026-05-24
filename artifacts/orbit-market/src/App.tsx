@@ -13,8 +13,15 @@ import ProductsList from "@/pages/dashboard/vendor/ProductsList";
 import ProductForm from "@/pages/dashboard/vendor/ProductForm";
 import EditProduct from "@/pages/dashboard/vendor/EditProduct";
 import ProductModeration from "@/pages/dashboard/admin/ProductModeration";
+import ProductCatalog from "@/pages/products/ProductCatalog";
+import ProductDetail from "@/pages/products/ProductDetail";
+import Cart from "@/pages/cart/Cart";
+import Checkout from "@/pages/checkout/Checkout";
+import OrderHistory from "@/pages/orders/OrderHistory";
+import OrderDetail from "@/pages/orders/OrderDetail";
 import { LanguageProvider } from "./contexts/LanguageContext";
 import { AuthProvider } from "./contexts/AuthContext";
+import { CartProvider } from "./contexts/CartContext";
 
 const queryClient = new QueryClient();
 
@@ -25,6 +32,14 @@ function Router() {
       <Route path="/login" component={Login} />
       <Route path="/register" component={Register} />
       <Route path="/forgot-password" component={ForgotPassword} />
+
+      {/* Public storefront */}
+      <Route path="/products" component={ProductCatalog} />
+      <Route path="/products/:id" component={ProductDetail} />
+      <Route path="/cart" component={Cart} />
+      <Route path="/checkout" component={Checkout} />
+      <Route path="/orders" component={OrderHistory} />
+      <Route path="/orders/:id" component={OrderDetail} />
 
       {/* Vendor product routes */}
       <Route path="/dashboard/products/new" component={() => <ProductForm />} />
@@ -48,14 +63,16 @@ function App() {
   return (
     <LanguageProvider>
       <AuthProvider>
-        <QueryClientProvider client={queryClient}>
-          <TooltipProvider>
-            <WouterRouter base={import.meta.env.BASE_URL?.replace(/\/$/, "") || ""}>
-              <Router />
-            </WouterRouter>
-            <Toaster />
-          </TooltipProvider>
-        </QueryClientProvider>
+        <CartProvider>
+          <QueryClientProvider client={queryClient}>
+            <TooltipProvider>
+              <WouterRouter base={import.meta.env.BASE_URL?.replace(/\/$/, "") || ""}>
+                <Router />
+              </WouterRouter>
+              <Toaster />
+            </TooltipProvider>
+          </QueryClientProvider>
+        </CartProvider>
       </AuthProvider>
     </LanguageProvider>
   );

@@ -38,13 +38,16 @@ const ProductUpsertSchema = z.object({
 // GET /api/products — public product listing (approved only)
 router.get("/", async (req, res) => {
   try {
-    const { category, search, sort = "newest", page = "1", limit = "24" } = req.query as Record<string, string>;
+    const { category, search, sort = "newest", page = "1", limit = "24", featured, minPrice, maxPrice } = req.query as Record<string, string>;
     const pageNum = Math.max(1, parseInt(page));
     const pageSize = Math.min(48, parseInt(limit));
     const offset = (pageNum - 1) * pageSize;
 
     const conditions: ReturnType<typeof eq>[] = [eq(productsTable.status, "approved")];
-    if (category) conditions.push(eq(productsTable.category, category));
+    if (category && category !== "all") conditions.push(eq(productsTable.category, category));
+    if (featured === "true") conditions.push(eq(productsTable.isFeatured, true));
+    if (minPrice) conditions.push(sql`${productsTable.price} >= ${parseFloat(minPrice)}` as any);
+    if (maxPrice) conditions.push(sql`${productsTable.price} <= ${parseFloat(maxPrice)}` as any);
     if (search) conditions.push(or(
       ilike(productsTable.title, `%${search}%`),
       ilike(productsTable.description, `%${search}%`),
