@@ -25,6 +25,10 @@ export const ordersTable = pgTable("orders", {
     country: string;
   }>().notNull(),
   paymentMethod: text("payment_method").default("cod").notNull(),
+  paymentStatus: text("payment_status").default("pending_payment").notNull(),
+  paymentGateway: text("payment_gateway").default("cod").notNull(),
+  paymentIntentId: text("payment_intent_id"),
+  paymentDetails: jsonb("payment_details").$type<Record<string, unknown>>(),
   notes: text("notes"),
   createdAt: timestamp("created_at").defaultNow().notNull(),
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
