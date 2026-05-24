@@ -4,6 +4,7 @@ import { ShoppingCart, Star, Minus, Plus, ArrowLeft, Package, Shield, RotateCcw,
 import Header from '../../components/Header';
 import Footer from '../../components/Footer';
 import ProductCard from '../../components/ProductCard';
+import ProductReviews from '../../components/ProductReviews';
 import { useCart } from '../../contexts/CartContext';
 import { useLanguage } from '../../contexts/LanguageContext';
 import { useCurrency } from '../../contexts/CurrencyContext';
@@ -275,6 +276,11 @@ export default function ProductDetail() {
             </div>
           </div>
         )}
+
+        {/* Reviews section */}
+        <div className="mb-12">
+          <ProductReviews productId={product.id} vendorId={product.vendorId} />
+        </div>
 
         {/* Related products */}
         {related.length > 0 && (

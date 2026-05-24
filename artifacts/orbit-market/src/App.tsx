@@ -23,6 +23,8 @@ import TrackShipment from "@/pages/track/TrackShipment";
 import VendorShipping from "@/pages/dashboard/vendor/VendorShipping";
 import ShippingZones from "@/pages/dashboard/admin/ShippingZones";
 import NotificationsPage from "@/pages/notifications/NotificationsPage";
+import MyReviews from "@/pages/dashboard/customer/MyReviews";
+import ReviewModeration from "@/pages/dashboard/admin/ReviewModeration";
 import { LanguageProvider } from "./contexts/LanguageContext";
 import { CurrencyProvider } from "./contexts/CurrencyContext";
 import { AuthProvider } from "./contexts/AuthContext";
@@ -65,6 +67,10 @@ function Router() {
 
       {/* Notifications */}
       <Route path="/notifications" component={NotificationsPage} />
+
+      {/* Reviews */}
+      <Route path="/dashboard/reviews/moderation" component={ReviewModeration} />
+      <Route path="/dashboard/reviews" component={MyReviews} />
 
       {/* Generic dashboard (role-based) */}
       <Route path="/dashboard" component={Dashboard} />
