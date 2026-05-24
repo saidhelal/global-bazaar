@@ -3,6 +3,7 @@ import { useParams, useLocation, useSearch } from 'wouter';
 import {
   Package, MapPin, CreditCard, CheckCircle, ArrowLeft,
   Globe, Landmark, ShieldCheck, Clock, AlertCircle,
+  Truck, Navigation, RotateCcw, ExternalLink,
 } from 'lucide-react';
 import Header from '../../components/Header';
 import Footer from '../../components/Footer';
@@ -20,6 +21,36 @@ interface OrderItem {
   subtotal: string;
   image?: string | null;
 }
+
+interface Shipment {
+  id: number;
+  trackingNumber: string;
+  carrier: string;
+  status: string;
+  estimatedDelivery?: string;
+  shippedAt?: string;
+  deliveredAt?: string;
+}
+
+interface ShipmentEvent {
+  id: number;
+  status: string;
+  location?: string;
+  locationAr?: string;
+  description?: string;
+  descriptionAr?: string;
+  occurredAt: string;
+}
+
+const SHIPMENT_STATUS_META: Record<string, { icon: React.ReactNode; color: string; labelEn: string; labelAr: string }> = {
+  created:           { icon: <Package className="w-3.5 h-3.5" />,    color: 'text-blue-400',    labelEn: 'Shipment Created',   labelAr: 'تم إنشاء الشحنة' },
+  picked_up:         { icon: <Truck className="w-3.5 h-3.5" />,       color: 'text-purple-400',  labelEn: 'Picked Up',          labelAr: 'تم الاستلام' },
+  in_transit:        { icon: <Navigation className="w-3.5 h-3.5" />,  color: 'text-yellow-400',  labelEn: 'In Transit',         labelAr: 'في الطريق' },
+  out_for_delivery:  { icon: <Truck className="w-3.5 h-3.5" />,       color: 'text-primary',     labelEn: 'Out for Delivery',   labelAr: 'خارج للتسليم' },
+  delivered:         { icon: <CheckCircle className="w-3.5 h-3.5" />, color: 'text-green-400',   labelEn: 'Delivered',          labelAr: 'تم التسليم' },
+  failed_delivery:   { icon: <AlertCircle className="w-3.5 h-3.5" />, color: 'text-red-400',     labelEn: 'Delivery Failed',    labelAr: 'فشل التسليم' },
+  returned:          { icon: <RotateCcw className="w-3.5 h-3.5" />,   color: 'text-gray-400',    labelEn: 'Returned',           labelAr: 'مُعاد' },
+};
 
 interface Order {
   id: number;
@@ -101,6 +132,8 @@ export default function OrderDetail() {
   const [items, setItems] = useState<OrderItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [showPaymentBanner, setShowPaymentBanner] = useState<'success' | 'failed' | null>(null);
+  const [shipment, setShipment] = useState<Shipment | null>(null);
+  const [shipmentEvents, setShipmentEvents] = useState<ShipmentEvent[]>([]);
 
   useEffect(() => {
     if (paymentResult === 'success') setShowPaymentBanner('success');
@@ -109,8 +142,16 @@ export default function OrderDetail() {
 
   useEffect(() => {
     if (!id || !user) { setLoading(false); return; }
-    apiFetch(`/orders/${id}`)
-      .then(d => { setOrder(d.order); setItems(d.items || []); })
+    Promise.all([
+      apiFetch(`/orders/${id}`),
+      apiFetch(`/shipping/order/${id}`).catch(() => ({ shipment: null, events: [] })),
+    ])
+      .then(([orderData, shipData]) => {
+        setOrder(orderData.order);
+        setItems(orderData.items || []);
+        setShipment(shipData.shipment || null);
+        setShipmentEvents(shipData.events || []);
+      })
       .catch(() => setOrder(null))
       .finally(() => setLoading(false));
   }, [id, user]);
@@ -207,6 +248,85 @@ export default function OrderDetail() {
             )}
           </div>
         </div>
+
+        {/* Shipment tracking card */}
+        {shipment && (
+          <div className="bg-[#112240] border border-white/5 rounded-2xl p-5 mb-4">
+            <div className="flex items-center justify-between mb-4">
+              <h2 className="text-white font-semibold text-sm flex items-center gap-2">
+                <Truck className="w-4 h-4 text-[#D4AF37]" />
+                {lang === 'ar' ? 'تتبع الشحنة' : 'Shipment Tracking'}
+              </h2>
+              <a
+                href={`${import.meta.env.BASE_URL || ''}track/${shipment.trackingNumber}`}
+                target="_blank"
+                rel="noreferrer"
+                className="flex items-center gap-1.5 text-xs text-primary hover:underline"
+              >
+                <ExternalLink className="w-3.5 h-3.5" />
+                {lang === 'ar' ? 'تتبع' : 'Track'}
+              </a>
+            </div>
+
+            {/* Shipment meta */}
+            <div className="grid grid-cols-2 gap-2 mb-4 text-xs">
+              <div className="bg-[#0A1628] rounded-xl p-3">
+                <p className="text-white/40 mb-0.5">{lang === 'ar' ? 'رقم التتبع' : 'Tracking #'}</p>
+                <p className="text-primary font-mono font-semibold">{shipment.trackingNumber}</p>
+              </div>
+              <div className="bg-[#0A1628] rounded-xl p-3">
+                <p className="text-white/40 mb-0.5">{lang === 'ar' ? 'شركة الشحن' : 'Carrier'}</p>
+                <p className="text-white font-medium">{shipment.carrier}</p>
+              </div>
+              {shipment.estimatedDelivery && (
+                <div className="bg-[#0A1628] rounded-xl p-3 col-span-2">
+                  <p className="text-white/40 mb-0.5">{lang === 'ar' ? 'موعد التسليم المتوقع' : 'Estimated Delivery'}</p>
+                  <p className="text-white font-medium">
+                    {new Date(shipment.estimatedDelivery).toLocaleDateString(lang === 'ar' ? 'ar-SA' : 'en-US', { year: 'numeric', month: 'long', day: 'numeric' })}
+                  </p>
+                </div>
+              )}
+            </div>
+
+            {/* Events timeline */}
+            {shipmentEvents.length > 0 && (
+              <div className="space-y-0">
+                {shipmentEvents.map((ev, idx) => {
+                  const meta = SHIPMENT_STATUS_META[ev.status];
+                  const isFirst = idx === 0;
+                  return (
+                    <div key={ev.id} className="flex gap-3">
+                      <div className="flex flex-col items-center">
+                        <div className={`w-7 h-7 rounded-full flex items-center justify-center flex-shrink-0 ${isFirst ? 'bg-[#D4AF37]/15' : 'bg-white/5'} ${isFirst ? (meta?.color || 'text-primary') : 'text-white/20'}`}>
+                          {meta?.icon || <Clock className="w-3.5 h-3.5" />}
+                        </div>
+                        {idx < shipmentEvents.length - 1 && <div className="w-0.5 flex-1 bg-white/5 my-1" />}
+                      </div>
+                      <div className="pb-3 flex-1">
+                        <p className={`text-xs font-semibold ${isFirst ? 'text-white' : 'text-white/50'}`}>
+                          {lang === 'ar' ? (meta?.labelAr || ev.status) : (meta?.labelEn || ev.status)}
+                        </p>
+                        {(ev.description || ev.descriptionAr) && (
+                          <p className="text-white/40 text-xs mt-0.5">
+                            {lang === 'ar' ? (ev.descriptionAr || ev.description) : (ev.description || ev.descriptionAr)}
+                          </p>
+                        )}
+                        {(ev.location || ev.locationAr) && (
+                          <p className="text-white/30 text-xs mt-0.5">
+                            📍 {lang === 'ar' ? (ev.locationAr || ev.location) : (ev.location || ev.locationAr)}
+                          </p>
+                        )}
+                        <p className="text-white/20 text-xs mt-0.5">
+                          {new Date(ev.occurredAt).toLocaleString(lang === 'ar' ? 'ar-SA' : 'en-US', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })}
+                        </p>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+          </div>
+        )}
 
         {/* Progress tracker */}
         {!isCancelled && (

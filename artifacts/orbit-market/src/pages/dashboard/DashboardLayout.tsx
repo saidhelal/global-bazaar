@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { Link, useLocation } from 'wouter';
-import { LayoutDashboard, ShoppingBag, Heart, Settings, LogOut, Menu, X, Store, Package, BarChart2, Users, Shield, Globe } from 'lucide-react';
+import { LayoutDashboard, ShoppingBag, Heart, Settings, LogOut, Menu, X, Store, Package, BarChart2, Users, Shield, Globe, Truck } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
 import { useLanguage } from '../../contexts/LanguageContext';
 
@@ -21,6 +21,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
       { href: '/dashboard', label: { en: 'Dashboard', ar: 'لوحة التحكم' }, Icon: LayoutDashboard },
       { href: '/dashboard/products', label: { en: 'Products', ar: 'المنتجات' }, Icon: Package },
       { href: '/dashboard/orders', label: { en: 'Orders', ar: 'الطلبات' }, Icon: ShoppingBag },
+      { href: '/dashboard/shipping', label: { en: 'Shipping', ar: 'الشحن' }, Icon: Truck },
       { href: '/dashboard/analytics', label: { en: 'Analytics', ar: 'التحليلات' }, Icon: BarChart2 },
       { href: '/dashboard/store', label: { en: 'Store Settings', ar: 'إعدادات المتجر' }, Icon: Store },
       { href: '/profile/settings', label: { en: 'Account', ar: 'الحساب' }, Icon: Settings },
@@ -30,6 +31,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
       { href: '/dashboard/users', label: { en: 'Users', ar: 'المستخدمون' }, Icon: Users },
       { href: '/dashboard/vendors', label: { en: 'Vendors', ar: 'البائعون' }, Icon: Store },
       { href: '/dashboard/orders', label: { en: 'All Orders', ar: 'جميع الطلبات' }, Icon: ShoppingBag },
+      { href: '/dashboard/shipping/zones', label: { en: 'Shipping Zones', ar: 'مناطق الشحن' }, Icon: Truck },
       { href: '/dashboard/analytics', label: { en: 'Analytics', ar: 'التحليلات' }, Icon: BarChart2 },
       { href: '/dashboard/moderation', label: { en: 'Moderation', ar: 'الإشراف' }, Icon: Shield },
       { href: '/profile/settings', label: { en: 'Settings', ar: 'الإعدادات' }, Icon: Settings },

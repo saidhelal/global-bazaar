@@ -6,6 +6,7 @@ import storageRouter from "./storage";
 import productsRouter from "./products";
 import ordersRouter from "./orders";
 import paymentsRouter from "./payments";
+import shippingRouter, { seedShippingZones } from "./shipping";
 
 const router: IRouter = Router();
 
@@ -16,5 +17,9 @@ router.use(storageRouter);
 router.use("/products", productsRouter);
 router.use("/orders", ordersRouter);
 router.use("/payments", paymentsRouter);
+router.use("/shipping", shippingRouter);
+
+// Seed default shipping zones on startup
+seedShippingZones().catch(() => {});
 
 export default router;

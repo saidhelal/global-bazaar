@@ -19,6 +19,9 @@ import Cart from "@/pages/cart/Cart";
 import Checkout from "@/pages/checkout/Checkout";
 import OrderHistory from "@/pages/orders/OrderHistory";
 import OrderDetail from "@/pages/orders/OrderDetail";
+import TrackShipment from "@/pages/track/TrackShipment";
+import VendorShipping from "@/pages/dashboard/vendor/VendorShipping";
+import ShippingZones from "@/pages/dashboard/admin/ShippingZones";
 import { LanguageProvider } from "./contexts/LanguageContext";
 import { CurrencyProvider } from "./contexts/CurrencyContext";
 import { AuthProvider } from "./contexts/AuthContext";
@@ -49,6 +52,14 @@ function Router() {
 
       {/* Admin routes */}
       <Route path="/dashboard/moderation" component={ProductModeration} />
+      <Route path="/dashboard/shipping/zones" component={ShippingZones} />
+
+      {/* Vendor routes */}
+      <Route path="/dashboard/shipping" component={VendorShipping} />
+
+      {/* Public shipment tracking */}
+      <Route path="/track/:number" component={TrackShipment} />
+      <Route path="/track" component={TrackShipment} />
 
       {/* Generic dashboard (role-based) */}
       <Route path="/dashboard" component={Dashboard} />
