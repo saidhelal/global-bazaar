@@ -68,8 +68,10 @@ export default function ProductDetail() {
         <Header />
         <div className="flex-1 flex items-center justify-center flex-col gap-4">
           <Package className="w-16 h-16 text-white/20" />
-          <h2 className="text-white text-xl font-semibold">Product not found</h2>
-          <button onClick={() => setLocation('/products')} className="text-[#D4AF37] underline">Browse all products</button>
+          <h2 className="text-white text-xl font-semibold">{lang === 'ar' ? 'المنتج غير موجود' : 'Product not found'}</h2>
+          <button onClick={() => setLocation('/products')} className="text-[#D4AF37] underline">
+            {lang === 'ar' ? 'تصفح جميع المنتجات' : 'Browse all products'}
+          </button>
         </div>
         <Footer />
       </div>
@@ -104,13 +106,13 @@ export default function ProductDetail() {
       <main className="flex-1 max-w-6xl mx-auto w-full px-4 py-6">
         {/* Breadcrumb */}
         <nav className="flex items-center gap-2 text-white/40 text-sm mb-6">
-          <button onClick={() => setLocation('/')} className="hover:text-white transition-colors">Home</button>
+          <button onClick={() => setLocation('/')} className="hover:text-white transition-colors">{lang === 'ar' ? 'الرئيسية' : 'Home'}</button>
           <span>/</span>
-          <button onClick={() => setLocation('/products')} className="hover:text-white transition-colors">Products</button>
+          <button onClick={() => setLocation('/products')} className="hover:text-white transition-colors">{lang === 'ar' ? 'المنتجات' : 'Products'}</button>
           <span>/</span>
           <button onClick={() => setLocation(`/products?category=${product.category}`)} className="hover:text-white transition-colors">{product.category}</button>
           <span>/</span>
-          <span className="text-white/70 truncate max-w-[200px]">{product.title}</span>
+          <span className="text-white/70 truncate max-w-[200px]">{title}</span>
         </nav>
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-8 mb-12">
@@ -146,7 +148,7 @@ export default function ProductDetail() {
             <div>
               <span className="text-[#D4AF37]/70 text-xs uppercase tracking-widest">{product.category}</span>
               <h1 className="text-white text-2xl font-bold mt-1 leading-snug">{title}</h1>
-              {product.sku && <p className="text-white/30 text-xs mt-1">SKU: {product.sku}</p>}
+              {product.sku && <p className="text-white/30 text-xs mt-1">{lang === 'ar' ? 'رقم المنتج' : 'SKU'}: {product.sku}</p>}
             </div>
 
             {/* Rating */}
@@ -156,9 +158,9 @@ export default function ProductDetail() {
                   <Star key={i} className={`w-5 h-5 ${i <= Math.round(rating) ? 'fill-[#D4AF37] text-[#D4AF37]' : 'text-white/20'}`} />
                 ))}
               </div>
-              <span className="text-white/60 text-sm">{rating.toFixed(1)} ({product.reviewCount || 0} reviews)</span>
+              <span className="text-white/60 text-sm">{rating.toFixed(1)} ({product.reviewCount || 0} {lang === 'ar' ? 'تقييم' : 'reviews'})</span>
               <span className="text-white/20">|</span>
-              <span className="text-green-400 text-sm">{product.salesCount || 0} sold</span>
+              <span className="text-green-400 text-sm">{product.salesCount || 0} {lang === 'ar' ? 'مبيعة' : 'sold'}</span>
             </div>
 
             {/* Price */}
@@ -167,7 +169,7 @@ export default function ProductDetail() {
                 <span className="text-[#D4AF37] text-3xl font-bold">{formatPrice(price)}</span>
                 {compareAt && <span className="text-white/30 text-lg line-through">{formatPrice(compareAt)}</span>}
                 {product.discountPercent && product.discountPercent > 0 ? (
-                  <span className="bg-[#D4AF37] text-[#0A1628] text-xs font-bold px-2 py-0.5 rounded">Save {product.discountPercent}%</span>
+                  <span className="bg-[#D4AF37] text-[#0A1628] text-xs font-bold px-2 py-0.5 rounded">{lang === 'ar' ? `وفّر ${product.discountPercent}%` : `Save ${product.discountPercent}%`}</span>
                 ) : null}
               </div>
               <p className="text-green-400 text-sm mt-1.5">✓ {lang === 'ar' ? `شحن مجاني للطلبات فوق ${formatPrice(100)}` : `Free shipping on orders over ${formatPrice(100)}`}</p>
@@ -177,10 +179,10 @@ export default function ProductDetail() {
             <div>
               {product.stock > 0 ? (
                 <p className="text-green-400 text-sm font-medium">
-                  ✓ In Stock {product.stock <= (product.lowStockThreshold ?? 5) ? `(Only ${product.stock} left!)` : ''}
+                  ✓ {lang === 'ar' ? 'متوفر' : 'In Stock'} {product.stock <= (product.lowStockThreshold ?? 5) ? (lang === 'ar' ? `(${product.stock} فقط متبقية!)` : `(Only ${product.stock} left!)`) : ''}
                 </p>
               ) : (
-                <p className="text-red-400 text-sm font-medium">✗ Out of Stock</p>
+                <p className="text-red-400 text-sm font-medium">✗ {lang === 'ar' ? 'نفدت الكمية' : 'Out of Stock'}</p>
               )}
             </div>
 
@@ -204,7 +206,7 @@ export default function ProductDetail() {
                       <Plus className="w-4 h-4" />
                     </button>
                   </div>
-                  {inCart && <span className="text-[#D4AF37] text-sm">{cartQty} in cart</span>}
+                  {inCart && <span className="text-[#D4AF37] text-sm">{cartQty} {lang === 'ar' ? 'في السلة' : 'in cart'}</span>}
                 </div>
                 <div className="flex gap-3">
                   <button
@@ -214,13 +216,17 @@ export default function ProductDetail() {
                     }`}
                   >
                     <ShoppingCart className="w-5 h-5" />
-                    {addedEffect ? '✓ Added!' : inCart ? 'Add More' : 'Add to Cart'}
+                    {addedEffect
+                      ? (lang === 'ar' ? '✓ تمت الإضافة!' : '✓ Added!')
+                      : inCart
+                        ? (lang === 'ar' ? 'أضف المزيد' : 'Add More')
+                        : (lang === 'ar' ? 'أضف للسلة' : 'Add to Cart')}
                   </button>
                   <button
                     onClick={handleBuyNow}
                     className="flex-1 py-3 bg-[#1D3461] hover:bg-[#1D3461]/80 text-white border border-[#D4AF37]/30 rounded-xl font-semibold transition-all"
                   >
-                    Buy Now
+                    {lang === 'ar' ? 'اشتر الآن' : 'Buy Now'}
                   </button>
                 </div>
               </div>
@@ -240,10 +246,10 @@ export default function ProductDetail() {
             {/* Trust badges */}
             <div className="grid grid-cols-2 gap-3">
               {[
-                { icon: Truck, label: 'Free Shipping', sub: 'On orders over $100' },
-                { icon: RotateCcw, label: 'Easy Returns', sub: '30-day return policy' },
-                { icon: Shield, label: 'Buyer Protection', sub: '100% secure checkout' },
-                { icon: Package, label: 'Quality Assured', sub: 'Verified vendors only' },
+                { icon: Truck, label: lang === 'ar' ? 'شحن مجاني' : 'Free Shipping', sub: lang === 'ar' ? 'للطلبات فوق $100' : 'On orders over $100' },
+                { icon: RotateCcw, label: lang === 'ar' ? 'إرجاع سهل' : 'Easy Returns', sub: lang === 'ar' ? 'سياسة إرجاع 30 يوماً' : '30-day return policy' },
+                { icon: Shield, label: lang === 'ar' ? 'حماية المشتري' : 'Buyer Protection', sub: lang === 'ar' ? 'دفع آمن 100%' : '100% secure checkout' },
+                { icon: Package, label: lang === 'ar' ? 'جودة مضمونة' : 'Quality Assured', sub: lang === 'ar' ? 'بائعون معتمدون فقط' : 'Verified vendors only' },
               ].map(({ icon: Icon, label, sub }) => (
                 <div key={label} className="flex items-start gap-2 bg-[#112240]/60 rounded-lg p-2.5 border border-white/5">
                   <Icon className="w-4 h-4 text-[#D4AF37] flex-shrink-0 mt-0.5" />
@@ -261,7 +267,7 @@ export default function ProductDetail() {
         {desc && (
           <div className="mb-12 bg-[#112240] rounded-2xl border border-white/5 overflow-hidden">
             <div className="flex border-b border-white/5">
-              {[{ key: 'desc', label: 'Description' }, { key: 'specs', label: 'Specifications' }].map(t => (
+              {[{ key: 'desc', label: lang === 'ar' ? 'الوصف' : 'Description' }, { key: 'specs', label: lang === 'ar' ? 'المواصفات' : 'Specifications' }].map(t => (
                 <button
                   key={t.key}
                   onClick={() => setActiveTab(t.key as any)}
@@ -285,7 +291,7 @@ export default function ProductDetail() {
         {/* Related products */}
         {related.length > 0 && (
           <div>
-            <h2 className="text-white font-bold text-xl mb-4">Related Products</h2>
+            <h2 className="text-white font-bold text-xl mb-4">{lang === 'ar' ? 'منتجات ذات صلة' : 'Related Products'}</h2>
             <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4">
               {related.map(p => <ProductCard key={p.id} product={p} />)}
             </div>

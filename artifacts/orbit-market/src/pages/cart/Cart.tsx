@@ -57,7 +57,7 @@ export default function Cart() {
         <div className="flex items-center justify-between mb-6">
           <h1 className="text-white font-bold text-2xl">
             {lang === 'ar' ? 'سلة التسوق' : 'Shopping Cart'}
-            <span className="text-white/40 font-normal text-lg ml-2 rtl:mr-2 rtl:ml-0">({count} items)</span>
+            <span className="text-white/40 font-normal text-lg ml-2 rtl:mr-2 rtl:ml-0">({count} {lang === 'ar' ? 'منتج' : 'items'})</span>
           </h1>
           <button onClick={clearCart} className="text-red-400/70 hover:text-red-400 text-sm flex items-center gap-1.5 transition-colors">
             <Trash2 className="w-4 h-4" />
@@ -117,7 +117,7 @@ export default function Cart() {
             ))}
 
             <Link href="/products" className="flex items-center gap-2 text-[#D4AF37] text-sm hover:text-[#D4AF37]/80 mt-4 transition-colors">
-              ← {lang === 'ar' ? 'مواصلة التسوق' : 'Continue Shopping'}
+              {lang === 'ar' ? '→' : '←'} {lang === 'ar' ? 'مواصلة التسوق' : 'Continue Shopping'}
             </Link>
           </div>
 
@@ -130,13 +130,13 @@ export default function Cart() {
 
               <div className="space-y-3 pb-4 border-b border-white/5">
                 <div className="flex justify-between text-sm">
-                  <span className="text-white/60">Subtotal ({count} items)</span>
+                  <span className="text-white/60">{lang === 'ar' ? `المجموع (${count} منتج)` : `Subtotal (${count} items)`}</span>
                   <span className="text-white">{formatPrice(subtotal)}</span>
                 </div>
                 <div className="flex justify-between text-sm">
-                  <span className="text-white/60">Shipping</span>
+                  <span className="text-white/60">{lang === 'ar' ? 'الشحن' : 'Shipping'}</span>
                   {shipping === 0
-                    ? <span className="text-green-400 font-medium">FREE</span>
+                    ? <span className="text-green-400 font-medium">{lang === 'ar' ? 'مجاني' : 'FREE'}</span>
                     : <span className="text-white">{formatPrice(shipping)}</span>
                   }
                 </div>
@@ -148,13 +148,13 @@ export default function Cart() {
                   </p>
                 )}
                 <div className="flex justify-between text-sm">
-                  <span className="text-white/60">Tax (5%)</span>
+                  <span className="text-white/60">{lang === 'ar' ? 'الضريبة (٥٪)' : 'Tax (5%)'}</span>
                   <span className="text-white">{formatPrice(tax)}</span>
                 </div>
               </div>
 
               <div className="flex justify-between items-center py-4 border-b border-white/5">
-                <span className="text-white font-bold text-lg">Total</span>
+                <span className="text-white font-bold text-lg">{lang === 'ar' ? 'الإجمالي' : 'Total'}</span>
                 <span className="text-[#D4AF37] font-bold text-xl">{formatPrice(total)}</span>
               </div>
 
@@ -167,7 +167,7 @@ export default function Cart() {
               </button>
 
               <div className="mt-4 text-center">
-                <p className="text-white/30 text-xs">🔒 Secure checkout · SSL encrypted</p>
+                <p className="text-white/30 text-xs">🔒 {lang === 'ar' ? 'دفع آمن · مشفر بـ SSL' : 'Secure checkout · SSL encrypted'}</p>
               </div>
             </div>
           </div>

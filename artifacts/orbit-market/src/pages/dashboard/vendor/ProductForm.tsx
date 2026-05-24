@@ -6,12 +6,7 @@ import { useLanguage } from '../../../contexts/LanguageContext';
 import DashboardLayout from '../DashboardLayout';
 import ImageUploader from '../../../components/ImageUploader';
 import type { Product } from '../../../hooks/useProducts';
-
-const CATEGORIES = [
-  'Electronics', 'Fashion', 'Home & Living', 'Beauty', 'Sports',
-  'Books', 'Automotive', 'Art & Collectibles', 'Food & Gourmet',
-  'Jewelry & Watches', 'Toys & Games', 'Health & Wellness', 'Other',
-];
+import { CATEGORIES } from '../../../data/categories';
 
 interface Props { initial?: Product; productId?: number; }
 
@@ -26,6 +21,7 @@ export default function ProductForm({ initial, productId }: Props) {
   const [descriptionAr, setDescriptionAr] = useState(initial?.descriptionAr ?? '');
   const [category, setCategory] = useState(initial?.category ?? '');
   const [subcategory, setSubcategory] = useState(initial?.subcategory ?? '');
+  const selectedCategory = CATEGORIES.find(c => c.value === category);
   const [sku, setSku] = useState(initial?.sku ?? '');
   const [price, setPrice] = useState(initial?.price ? String(parseFloat(initial.price)) : '');
   const [compareAtPrice, setCompareAtPrice] = useState(initial?.compareAtPrice ? String(parseFloat(initial.compareAtPrice)) : '');
@@ -197,16 +193,21 @@ export default function ProductForm({ initial, productId }: Props) {
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                 <div>
                   <label className={labelCls}>{tx.category} *</label>
-                  <select value={category} onChange={(e) => setCategory(e.target.value)}
+                  <select value={category} onChange={(e) => { setCategory(e.target.value); setSubcategory(''); }}
                     className={`${inputCls} appearance-none`} data-testid="select-category">
                     <option value="">—</option>
-                    {CATEGORIES.map((c) => <option key={c} value={c}>{c}</option>)}
+                    {CATEGORIES.map((c) => <option key={c.value} value={c.value}>{lang === 'ar' ? c.ar : c.en}</option>)}
                   </select>
                 </div>
                 <div>
                   <label className={labelCls}>{tx.subcategory}</label>
-                  <input value={subcategory} onChange={(e) => setSubcategory(e.target.value)} className={inputCls}
-                    data-testid="input-subcategory" />
+                  <select value={subcategory} onChange={(e) => setSubcategory(e.target.value)}
+                    className={`${inputCls} appearance-none`} data-testid="select-subcategory">
+                    <option value="">—</option>
+                    {(selectedCategory?.subcategories ?? []).map(s => (
+                      <option key={s.value} value={s.value}>{lang === 'ar' ? s.ar : s.en}</option>
+                    ))}
+                  </select>
                 </div>
                 <div>
                   <label className={labelCls}>{tx.sku}</label>

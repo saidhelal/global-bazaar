@@ -17,6 +17,7 @@ export interface Product {
   currency: string;
   stock: number;
   lowStockThreshold?: number | null;
+  weight?: string | null;
   status: 'draft' | 'pending_review' | 'approved' | 'rejected' | 'archived';
   rejectionReason?: string | null;
   isFeatured?: boolean | null;
