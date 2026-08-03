@@ -5,6 +5,12 @@ packages:
   - scripts
 
 allowBuilds:
+  # embedded-postgres ships one binary package per platform, each with a
+  # postinstall step. Every platform the project is installed on must be
+  # approved here: pnpm treats an unapproved build as a hard error
+  # (ERR_PNPM_IGNORED_BUILDS), so listing only the Windows package broke
+  # installs on Linux — both CI and the Ubuntu deployment target.
+  '@embedded-postgres/linux-x64': true
   '@embedded-postgres/windows-x64': true
   esbuild: true
 
