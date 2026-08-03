@@ -2,6 +2,7 @@
 
 # compiled output
 dist
+build
 tmp
 out-tsc
 *.tsbuildinfo
@@ -12,7 +13,7 @@ out-tsc
 node_modules
 
 # IDEs and editors
-/.idea
+.idea/
 .project
 .classpath
 .c9/
@@ -30,12 +31,15 @@ node_modules
 # misc
 /.sass-cache
 /connect.lock
-/coverage
-/libpeerconnection.log
-npm-debug.log
-yarn-error.log
-testem.log
 /typings
+
+# test coverage
+coverage/
+*.lcov
+
+# logs
+logs/
+*.log
 
 # System Files
 .DS_Store
@@ -47,3 +51,15 @@ Thumbs.db
 # Replit
 .cache/
 .local/
+
+# Local environment — never commit real secrets; .env.example is the tracked template
+.env
+.env.local
+.env.development
+.env.production
+.env.test
+.env.*.local
+!.env.example
+
+# Project-local Postgres data directory (see lib/db/scripts/local-postgres.mjs)
+.pgdata/

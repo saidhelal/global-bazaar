@@ -145,7 +145,7 @@ router.get("/", requireAuth, async (req, res) => {
 // GET /api/orders/:id — single order with items
 router.get("/:id", requireAuth, async (req, res) => {
   try {
-    const id = parseInt(req.params["id"]!);
+    const id = parseInt(String(req.params["id"]));
     const [order] = await db.select().from(ordersTable).where(eq(ordersTable.id, id)).limit(1);
     if (!order) { res.status(404).json({ error: "Order not found" }); return; }
     if (order.userId !== req.user!.userId && req.user!.role !== "admin") {
@@ -173,7 +173,7 @@ router.get("/admin/all", requireAuth, async (req, res) => {
 router.put("/:id/status", requireAuth, async (req, res) => {
   if (req.user!.role !== "admin") { res.status(403).json({ error: "Forbidden" }); return; }
   try {
-    const id = parseInt(req.params["id"]!);
+    const id = parseInt(String(req.params["id"]));
     const { status } = z.object({
       status: z.enum(["pending","confirmed","processing","shipped","delivered","cancelled","refunded"]),
     }).parse(req.body);

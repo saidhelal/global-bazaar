@@ -94,6 +94,15 @@ const DEMO_PRODUCTS = [
 ];
 
 router.post("/seed", async (_req, res) => {
+  // Development-only endpoint: it creates an administrator account with a
+  // well-known password. Exposing it on a public deployment is a full account
+  // takeover, so it is disabled unless explicitly opted into. 404 (not 403) so
+  // the endpoint's existence is not disclosed in production.
+  if (process.env["NODE_ENV"] === "production" && process.env["ALLOW_SEED"] !== "true") {
+    res.status(404).json({ error: "Not found" });
+    return;
+  }
+
   const demoUsers = [
     { email: "admin@orbit.market", password: "Admin1234!", fullName: "Admin User", role: "admin" as const },
     {

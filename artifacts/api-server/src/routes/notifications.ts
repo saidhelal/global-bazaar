@@ -47,7 +47,7 @@ router.get("/count", requireAuth, async (req, res) => {
 // PUT /api/notifications/:id/read — mark single as read
 router.put("/:id/read", requireAuth, async (req, res) => {
   try {
-    const id = parseInt(req.params["id"]!);
+    const id = parseInt(String(req.params["id"]));
     await db
       .update(notificationsTable)
       .set({ isRead: true })
@@ -80,7 +80,7 @@ router.put("/read-all", requireAuth, async (req, res) => {
 // DELETE /api/notifications/:id
 router.delete("/:id", requireAuth, async (req, res) => {
   try {
-    const id = parseInt(req.params["id"]!);
+    const id = parseInt(String(req.params["id"]));
     await db
       .delete(notificationsTable)
       .where(and(

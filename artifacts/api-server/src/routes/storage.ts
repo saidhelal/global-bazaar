@@ -2,6 +2,7 @@ import { Router, type IRouter, type Request, type Response } from "express";
 import { Readable } from "stream";
 import { z } from "zod";
 import { ObjectStorageService, ObjectNotFoundError } from "../lib/objectStorage";
+import { requireAuth } from "../middlewares/auth";
 
 const router: IRouter = Router();
 const objectStorageService = new ObjectStorageService();
@@ -12,7 +13,10 @@ const RequestUploadUrlBody = z.object({
   contentType: z.string().min(1),
 });
 
-router.post("/storage/uploads/request-url", async (req: Request, res: Response) => {
+// Authenticated: an anonymous caller could otherwise mint unlimited signed
+// upload URLs against the project's bucket. The web client already sends the
+// bearer token for this call, so no client change is required.
+router.post("/storage/uploads/request-url", requireAuth, async (req: Request, res: Response) => {
   const parsed = RequestUploadUrlBody.safeParse(req.body);
   if (!parsed.success) {
     res.status(400).json({ error: "Missing or invalid required fields" });

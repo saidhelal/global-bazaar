@@ -31,7 +31,6 @@ externalPort = 80
 localPort = 19425
 externalPort = 3000
 
-[userenv]
-
-[userenv.shared]
-JWT_SECRET = "ed4ca22d035168bdddf60f0ef9fe002c78c9768526531b0a3c6a549f4a59f449"
+# Secrets are never stored in this file. Provide JWT_SECRET and all other
+# credentials through the environment (see .env.example); on Replit use the
+# Secrets pane rather than [userenv.shared].

@@ -237,7 +237,7 @@ router.get("/admin/users", requireAuth, async (req, res) => {
 router.put("/admin/users/:id/approve", requireAuth, async (req, res) => {
   if (req.user!.role !== "admin") { res.status(403).json({ error: "Forbidden" }); return; }
   try {
-    const id = parseInt(req.params["id"]!);
+    const id = parseInt(String(req.params["id"]));
     const [user] = await db.update(usersTable).set({ isVendorApproved: true }).where(eq(usersTable.id, id)).returning();
     res.json({ user: safeUser(user) });
     notifyUser(user.id, user.email, user.fullName, {

@@ -388,7 +388,7 @@ router.get("/myfatoorah/callback", async (req, res) => {
 /** GET /api/payments/status/:orderId */
 router.get("/status/:orderId", requireAuth, async (req, res) => {
   try {
-    const orderId = parseInt(req.params["orderId"]!);
+    const orderId = parseInt(String(req.params["orderId"]));
     const [order] = await db
       .select({
         id: ordersTable.id,

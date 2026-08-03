@@ -80,7 +80,7 @@ router.get("/vendors", ...adminOnly, async (req, res) => {
 // Get full detail: vendor profile + all documents + contract
 router.get("/vendors/:id", ...adminOnly, async (req, res) => {
   try {
-    const vendorId = parseInt(req.params.id, 10);
+    const vendorId = parseInt(String(req.params.id), 10);
     if (isNaN(vendorId)) { res.status(400).json({ error: "Invalid vendor id" }); return; }
 
     const [vendor] = await db
@@ -129,7 +129,7 @@ const ReviewDocSchema = z.object({
 
 router.patch("/documents/:docId", ...adminOnly, async (req, res) => {
   try {
-    const docId = parseInt(req.params.docId, 10);
+    const docId = parseInt(String(req.params.docId), 10);
     if (isNaN(docId)) { res.status(400).json({ error: "Invalid doc id" }); return; }
 
     const body = ReviewDocSchema.parse(req.body);
@@ -255,7 +255,7 @@ const GenerateContractSchema = z.object({
 
 router.post("/vendors/:id/contract", ...adminOnly, async (req, res) => {
   try {
-    const vendorId = parseInt(req.params.id, 10);
+    const vendorId = parseInt(String(req.params.id), 10);
     if (isNaN(vendorId)) { res.status(400).json({ error: "Invalid vendor id" }); return; }
 
     const body = GenerateContractSchema.parse(req.body);
@@ -328,7 +328,7 @@ const ApproveSchema = z.object({ adminNotes: z.string().optional() });
 
 router.patch("/vendors/:id/approve", ...adminOnly, async (req, res) => {
   try {
-    const vendorId = parseInt(req.params.id, 10);
+    const vendorId = parseInt(String(req.params.id), 10);
     if (isNaN(vendorId)) { res.status(400).json({ error: "Invalid vendor id" }); return; }
 
     const body = ApproveSchema.parse(req.body);
@@ -378,7 +378,7 @@ const RejectSchema = z.object({ adminNotes: z.string().min(1) });
 
 router.patch("/vendors/:id/reject", ...adminOnly, async (req, res) => {
   try {
-    const vendorId = parseInt(req.params.id, 10);
+    const vendorId = parseInt(String(req.params.id), 10);
     if (isNaN(vendorId)) { res.status(400).json({ error: "Invalid vendor id" }); return; }
 
     const body = RejectSchema.parse(req.body);

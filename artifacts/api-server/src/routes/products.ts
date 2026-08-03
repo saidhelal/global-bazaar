@@ -86,7 +86,7 @@ router.get("/categories", (_req, res) => {
 // GET /api/products/:id — public product detail
 router.get("/:id", async (req, res) => {
   try {
-    const id = parseInt(req.params["id"]!);
+    const id = parseInt(String(req.params["id"]));
     const [product] = await db.select().from(productsTable).where(eq(productsTable.id, id)).limit(1);
     if (!product || product.status !== "approved") {
       res.status(404).json({ error: "Product not found" });
@@ -158,7 +158,7 @@ router.put("/vendor/products/:id", requireAuth, async (req, res) => {
     return;
   }
   try {
-    const id = parseInt(req.params["id"]!);
+    const id = parseInt(String(req.params["id"]));
     const [existing] = await db.select().from(productsTable).where(eq(productsTable.id, id)).limit(1);
     if (!existing) { res.status(404).json({ error: "Product not found" }); return; }
     if (existing.vendorId !== req.user!.userId && req.user!.role !== "admin") {
@@ -193,7 +193,7 @@ router.delete("/vendor/products/:id", requireAuth, async (req, res) => {
     res.status(403).json({ error: "Forbidden" }); return;
   }
   try {
-    const id = parseInt(req.params["id"]!);
+    const id = parseInt(String(req.params["id"]));
     const [existing] = await db.select().from(productsTable).where(eq(productsTable.id, id)).limit(1);
     if (!existing) { res.status(404).json({ error: "Product not found" }); return; }
     if (existing.vendorId !== req.user!.userId && req.user!.role !== "admin") {
@@ -228,7 +228,7 @@ router.get("/admin/all", requireAuth, async (req, res) => {
 router.put("/admin/products/:id/approve", requireAuth, async (req, res) => {
   if (req.user!.role !== "admin") { res.status(403).json({ error: "Forbidden" }); return; }
   try {
-    const id = parseInt(req.params["id"]!);
+    const id = parseInt(String(req.params["id"]));
     const { adminNotes } = z.object({ adminNotes: z.string().optional() }).parse(req.body);
     const [product] = await db.update(productsTable)
       .set({ status: "approved", rejectionReason: null, adminNotes: adminNotes || null, updatedAt: new Date() })
@@ -258,7 +258,7 @@ router.put("/admin/products/:id/approve", requireAuth, async (req, res) => {
 router.put("/admin/products/:id/reject", requireAuth, async (req, res) => {
   if (req.user!.role !== "admin") { res.status(403).json({ error: "Forbidden" }); return; }
   try {
-    const id = parseInt(req.params["id"]!);
+    const id = parseInt(String(req.params["id"]));
     const { reason } = z.object({ reason: z.string().min(5) }).parse(req.body);
     const [product] = await db.update(productsTable)
       .set({ status: "rejected", rejectionReason: reason, updatedAt: new Date() })
@@ -289,7 +289,7 @@ router.put("/admin/products/:id/reject", requireAuth, async (req, res) => {
 router.put("/admin/products/:id/feature", requireAuth, async (req, res) => {
   if (req.user!.role !== "admin") { res.status(403).json({ error: "Forbidden" }); return; }
   try {
-    const id = parseInt(req.params["id"]!);
+    const id = parseInt(String(req.params["id"]));
     const { featured } = z.object({ featured: z.boolean() }).parse(req.body);
     const [product] = await db.update(productsTable)
       .set({ isFeatured: featured, updatedAt: new Date() })

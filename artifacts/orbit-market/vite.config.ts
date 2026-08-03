@@ -83,6 +83,15 @@ export default defineConfig({
     fs: {
       strict: true,
     },
+    // Local replacement for the Replit router, which used to serve the web
+    // artifact and the API artifact under a single origin. The frontend calls
+    // relative "/api/..." paths, so they must be forwarded to the API server.
+    proxy: {
+      "/api": {
+        target: `http://127.0.0.1:${process.env.API_PORT ?? 5176}`,
+        changeOrigin: true,
+      },
+    },
   },
   preview: {
     port,

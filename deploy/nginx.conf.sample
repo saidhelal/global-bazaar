@@ -1,0 +1,83 @@
+# Nginx site configuration for Global Bazaar on Ubuntu.
+#
+#   sudo cp deploy/nginx.conf.sample /etc/nginx/sites-available/global-bazaar
+#   sudo ln -s /etc/nginx/sites-available/global-bazaar /etc/nginx/sites-enabled/
+#   sudo nginx -t && sudo systemctl reload nginx
+#
+# Replace example.com with your domain and APP_DIR with the deploy path.
+# TLS: run `sudo certbot --nginx -d example.com -d www.example.com` after the
+# HTTP server block below is live; certbot rewrites this file in place.
+
+upstream global_bazaar_api {
+    # Must match PORT in the host's .env (the PM2-managed API process).
+    server 127.0.0.1:5176;
+    keepalive 32;
+}
+
+server {
+    listen 80;
+    listen [::]:80;
+    server_name example.com www.example.com;
+
+    # Static SPA build output.
+    root /home/ubuntu/global-bazaar/artifacts/orbit-market/dist/public;
+    index index.html;
+
+    # Uploads and product images; keep in step with any API-side limit.
+    client_max_body_size 10M;
+
+    # The web client calls same-origin relative "/api/..." paths, so the API
+    # must be reachable under the same host — do not move it to a subdomain
+    # without also changing the client's API base URL.
+    location /api/ {
+        proxy_pass http://global_bazaar_api;
+        proxy_http_version 1.1;
+
+        proxy_set_header Host              $host;
+        proxy_set_header X-Real-IP         $remote_addr;
+        proxy_set_header X-Forwarded-For   $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+        proxy_set_header Connection        "";
+
+        proxy_connect_timeout 5s;
+        proxy_send_timeout    60s;
+        proxy_read_timeout    60s;
+
+        # Stripe/Paymob webhooks must reach the app with an intact raw body.
+        proxy_request_buffering off;
+    }
+
+    # Content-hashed assets are safe to cache permanently.
+    location /assets/ {
+        expires 1y;
+        add_header Cache-Control "public, immutable";
+        access_log off;
+        try_files $uri =404;
+    }
+
+    # SPA history fallback — client-side routes must return index.html.
+    # index.html itself is never cached, so deploys are picked up immediately.
+    location / {
+        try_files $uri $uri/ /index.html;
+    }
+
+    location = /index.html {
+        add_header Cache-Control "no-cache, must-revalidate";
+    }
+
+    gzip on;
+    gzip_vary on;
+    gzip_min_length 1024;
+    gzip_types text/plain text/css application/javascript application/json
+               image/svg+xml application/xml;
+
+    # Baseline security headers. Content-Security-Policy is intentionally
+    # omitted: the app loads Stripe and remote images, so a policy must be
+    # authored against the real asset origins before being enforced.
+    add_header X-Content-Type-Options "nosniff" always;
+    add_header X-Frame-Options "SAMEORIGIN" always;
+    add_header Referrer-Policy "strict-origin-when-cross-origin" always;
+
+    access_log /var/log/nginx/global-bazaar.access.log;
+    error_log  /var/log/nginx/global-bazaar.error.log;
+}

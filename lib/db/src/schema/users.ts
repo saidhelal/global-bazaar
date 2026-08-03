@@ -1,6 +1,10 @@
 import { pgTable, serial, text, timestamp, pgEnum, boolean } from "drizzle-orm/pg-core";
 import { createInsertSchema, createSelectSchema } from "drizzle-zod";
-import { z } from "zod";
+// drizzle-zod v0.8 builds its schemas with the Zod v4 API (it imports "zod/v4"
+// internally), so `z` must come from the same entry point. Importing the v3
+// classic API here yields schemas that are structurally incompatible with the
+// objects returned by createInsertSchema/createSelectSchema.
+import { z } from "zod/v4";
 
 export const roleEnum = pgEnum("role", ["customer", "vendor", "admin"]);
 

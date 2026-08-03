@@ -66,7 +66,12 @@ export async function sendEmail(opts: EmailOptions): Promise<void> {
   }
 
   try {
-    const nodemailer = await import("nodemailer");
+    // nodemailer is an optional runtime dependency: it is externalised by the
+    // bundler (see build.mjs) and only loaded when SMTP is configured, so it
+    // need not be installed. The specifier is kept non-literal so the type
+    // checker does not require the package to be present.
+    const nodemailerModule = "nodemailer";
+    const nodemailer = await import(nodemailerModule);
     const transporter = nodemailer.createTransport({
       host: SMTP_HOST,
       port: SMTP_PORT,

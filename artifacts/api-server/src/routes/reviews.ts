@@ -35,7 +35,7 @@ async function recalcProductRating(productId: number) {
 // GET /api/reviews/product/:productId — public approved reviews + rating summary
 router.get("/product/:productId", async (req, res) => {
   try {
-    const productId = parseInt(req.params["productId"]!);
+    const productId = parseInt(String(req.params["productId"]));
     const limit = Math.min(parseInt(req.query["limit"] as string || "20"), 50);
     const page = Math.max(parseInt(req.query["page"] as string || "1"), 1);
     const offset = (page - 1) * limit;
@@ -210,7 +210,7 @@ router.post("/", requireAuth, async (req, res) => {
 // PUT /api/reviews/:id — edit own review
 router.put("/:id", requireAuth, async (req, res) => {
   try {
-    const id = parseInt(req.params["id"]!);
+    const id = parseInt(String(req.params["id"]));
     const data = ReviewSchema.partial().parse(req.body);
     const [existing] = await db.select().from(reviewsTable).where(eq(reviewsTable.id, id)).limit(1);
     if (!existing) { res.status(404).json({ error: "Review not found" }); return; }
@@ -229,7 +229,7 @@ router.put("/:id", requireAuth, async (req, res) => {
 // DELETE /api/reviews/:id — delete own review (or admin)
 router.delete("/:id", requireAuth, async (req, res) => {
   try {
-    const id = parseInt(req.params["id"]!);
+    const id = parseInt(String(req.params["id"]));
     const [existing] = await db.select().from(reviewsTable).where(eq(reviewsTable.id, id)).limit(1);
     if (!existing) { res.status(404).json({ error: "Review not found" }); return; }
     if (existing.userId !== req.user!.userId && req.user!.role !== "admin") {
@@ -249,7 +249,7 @@ router.put("/:id/reply", requireAuth, async (req, res) => {
     res.status(403).json({ error: "Forbidden" }); return;
   }
   try {
-    const id = parseInt(req.params["id"]!);
+    const id = parseInt(String(req.params["id"]));
     const { reply, replyAr } = z.object({ reply: z.string().max(1000), replyAr: z.string().max(1000).optional() }).parse(req.body);
     const [existing] = await db.select({ productId: reviewsTable.productId, userId: reviewsTable.userId })
       .from(reviewsTable).where(eq(reviewsTable.id, id)).limit(1);
@@ -293,7 +293,7 @@ router.put("/:id/reply", requireAuth, async (req, res) => {
 // POST /api/reviews/:id/vote — mark helpful/unhelpful
 router.post("/:id/vote", requireAuth, async (req, res) => {
   try {
-    const id = parseInt(req.params["id"]!);
+    const id = parseInt(String(req.params["id"]));
     const { isHelpful } = z.object({ isHelpful: z.boolean() }).parse(req.body);
 
     // Upsert vote
@@ -358,7 +358,7 @@ router.get("/admin", requireAuth, async (req, res) => {
 router.put("/admin/:id/approve", requireAuth, async (req, res) => {
   if (req.user!.role !== "admin") { res.status(403).json({ error: "Forbidden" }); return; }
   try {
-    const id = parseInt(req.params["id"]!);
+    const id = parseInt(String(req.params["id"]));
     const [review] = await db.update(reviewsTable)
       .set({ status: "approved", rejectionReason: null, updatedAt: new Date() })
       .where(eq(reviewsTable.id, id))
@@ -387,7 +387,7 @@ router.put("/admin/:id/approve", requireAuth, async (req, res) => {
 router.put("/admin/:id/reject", requireAuth, async (req, res) => {
   if (req.user!.role !== "admin") { res.status(403).json({ error: "Forbidden" }); return; }
   try {
-    const id = parseInt(req.params["id"]!);
+    const id = parseInt(String(req.params["id"]));
     const { reason } = z.object({ reason: z.string().min(5) }).parse(req.body);
     const [review] = await db.update(reviewsTable)
       .set({ status: "rejected", rejectionReason: reason, updatedAt: new Date() })

@@ -1,0 +1,179 @@
+name: CI / Deploy
+
+# Build + verify on every push and PR. Deploy only from main, and only when
+# the deployment secrets are configured, so forks and PRs can never deploy.
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  NODE_VERSION: '22'
+  PNPM_VERSION: '11'
+  # Both Vite artifacts read these at config-load time and throw without them.
+  # Vite's root is artifacts/orbit-market, so it never reads the repo-root
+  # .env — these must come from the shell.
+  PORT: '5175'
+  BASE_PATH: '/'
+  # Publishable (public) key, inlined into the bundle at build time. Optional:
+  # card checkout is simply disabled when it is not configured.
+  VITE_STRIPE_PUBLISHABLE_KEY: ${{ secrets.VITE_STRIPE_PUBLISHABLE_KEY }}
+
+jobs:
+  build:
+    name: Install, Typecheck, Build, Verify
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: ${{ env.PNPM_VERSION }}
+
+      - name: Setup Node ${{ env.NODE_VERSION }}
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: pnpm
+
+      # --frozen-lockfile fails fast if pnpm-lock.yaml is out of sync with any
+      # package.json, rather than silently resolving a different tree than CI.
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Type check
+        run: pnpm run typecheck
+
+      - name: Build all workspace packages
+        run: pnpm -r --if-present run build
+
+      # Guards against a "green" build that produced nothing: esbuild and Vite
+      # both exit 0 on an empty entry point.
+      - name: Verify build artifacts
+        run: |
+          set -euo pipefail
+          fail() { echo "::error::$1"; exit 1; }
+
+          api="artifacts/api-server/dist/index.mjs"
+          web="artifacts/orbit-market/dist/public/index.html"
+
+          [ -f "$api" ] || fail "Missing API bundle: $api"
+          [ -f "$web" ] || fail "Missing web entry: $web"
+
+          api_size=$(wc -c < "$api")
+          [ "$api_size" -gt 100000 ] || fail "API bundle suspiciously small: ${api_size} bytes"
+
+          assets=$(find artifacts/orbit-market/dist/public/assets -name '*.js' | wc -l)
+          [ "$assets" -gt 0 ] || fail "No JS assets emitted for the web artifact"
+
+          echo "API bundle:    $(numfmt --to=iec "$api_size")"
+          echo "Web JS chunks: $assets"
+          echo "Build artifacts verified."
+
+  deploy:
+    name: Deploy to AWS EC2
+    needs: build
+    if: github.ref == 'refs/heads/main' && github.event_name != 'pull_request'
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    environment: production
+    steps:
+      - name: Check deployment secrets
+        id: guard
+        env:
+          EC2_HOST: ${{ secrets.EC2_HOST }}
+        run: |
+          if [ -z "$EC2_HOST" ]; then
+            echo "::notice::EC2_HOST is not configured — skipping deployment."
+            echo "ready=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "ready=true" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Configure SSH
+        if: steps.guard.outputs.ready == 'true'
+        env:
+          SSH_KEY: ${{ secrets.EC2_SSH_KEY }}
+          EC2_HOST: ${{ secrets.EC2_HOST }}
+        run: |
+          set -euo pipefail
+          mkdir -p ~/.ssh
+          printf '%s\n' "$SSH_KEY" > ~/.ssh/deploy_key
+          chmod 600 ~/.ssh/deploy_key
+          # Pin the host key instead of disabling verification.
+          ssh-keyscan -H "$EC2_HOST" >> ~/.ssh/known_hosts 2>/dev/null
+
+      # Deploys by pulling on the host: the API bundle still needs
+      # @google-cloud/storage resolved at runtime, so dependencies are installed
+      # from the committed lockfile on the machine that runs them.
+      - name: Deploy and restart
+        if: steps.guard.outputs.ready == 'true'
+        env:
+          EC2_HOST: ${{ secrets.EC2_HOST }}
+          EC2_USER: ${{ secrets.EC2_USER }}
+          APP_DIR: ${{ secrets.EC2_APP_DIR }}
+        run: |
+          set -euo pipefail
+          ssh -i ~/.ssh/deploy_key -o BatchMode=yes "$EC2_USER@$EC2_HOST" \
+            "APP_DIR='$APP_DIR' REF='${{ github.sha }}' \
+             VITE_STRIPE_PUBLISHABLE_KEY='${VITE_STRIPE_PUBLISHABLE_KEY:-}' bash -s" <<'REMOTE'
+          set -euo pipefail
+          export PATH="$HOME/.local/share/pnpm:$PATH"
+
+          echo "==> Deploying $REF to $APP_DIR"
+          cd "$APP_DIR"
+
+          echo "==> Fetching source"
+          git fetch --all --prune
+          git checkout --force "$REF"
+
+          echo "==> Installing dependencies"
+          pnpm install --frozen-lockfile
+
+          echo "==> Building"
+          PORT=5175 BASE_PATH=/ \
+            VITE_STRIPE_PUBLISHABLE_KEY="${VITE_STRIPE_PUBLISHABLE_KEY:-}" \
+            pnpm run build
+
+          echo "==> Reloading process manager"
+          # reload = zero-downtime; falls back to start on first deploy.
+          pm2 reload ecosystem.config.cjs --update-env || pm2 start ecosystem.config.cjs
+          pm2 save
+
+          echo "==> Deployment finished"
+          REMOTE
+
+      - name: Health check
+        if: steps.guard.outputs.ready == 'true'
+        env:
+          HEALTH_URL: ${{ secrets.HEALTH_URL }}
+        run: |
+          set -euo pipefail
+          url="${HEALTH_URL:-}"
+          if [ -z "$url" ]; then
+            echo "::warning::HEALTH_URL not set — skipping post-deploy health check."
+            exit 0
+          fi
+
+          echo "Probing $url"
+          for attempt in $(seq 1 10); do
+            code=$(curl -fsS -o /tmp/health.json -w '%{http_code}' --max-time 10 "$url" || true)
+            if [ "$code" = "200" ]; then
+              echo "Healthy after ${attempt} attempt(s): $(cat /tmp/health.json)"
+              exit 0
+            fi
+            echo "Attempt ${attempt}/10 returned '${code:-no response}' — retrying in 6s"
+            sleep 6
+          done
+
+          echo "::error::Service did not become healthy after 10 attempts."
+          exit 1

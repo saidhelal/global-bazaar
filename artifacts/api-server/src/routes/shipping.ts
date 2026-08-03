@@ -165,10 +165,13 @@ router.post("/zones", requireAuth, async (req, res) => {
 router.put("/zones/:id", requireAuth, async (req, res) => {
   if (req.user!.role !== "admin") { res.status(403).json({ error: "Forbidden" }); return; }
   try {
-    const id = parseInt(req.params["id"]!);
+    const id = parseInt(String(req.params["id"]));
     const data = ZoneSchema.partial().parse(req.body);
+    // `rate` lives in a separate table (handled below), so it must be stripped
+    // out rather than passed to the zones update.
+    const { rate: _rate, ...zoneData } = data;
     const [zone] = await db.update(shippingZonesTable)
-      .set({ ...data, rate: undefined, updatedAt: new Date() })
+      .set({ ...zoneData, updatedAt: new Date() })
       .where(eq(shippingZonesTable.id, id))
       .returning();
 
@@ -208,7 +211,7 @@ router.put("/zones/:id", requireAuth, async (req, res) => {
 router.delete("/zones/:id", requireAuth, async (req, res) => {
   if (req.user!.role !== "admin") { res.status(403).json({ error: "Forbidden" }); return; }
   try {
-    const id = parseInt(req.params["id"]!);
+    const id = parseInt(String(req.params["id"]));
     await db.delete(shippingZonesTable).where(eq(shippingZonesTable.id, id));
     res.json({ success: true });
   } catch {
@@ -249,7 +252,7 @@ router.get("/track/:trackingNumber", async (req, res) => {
 // ─── AUTH: GET /api/shipments/order/:orderId ──────────────────────────────────
 router.get("/order/:orderId", requireAuth, async (req, res) => {
   try {
-    const orderId = parseInt(req.params["orderId"]!);
+    const orderId = parseInt(String(req.params["orderId"]));
     const [order] = await db.select().from(ordersTable).where(eq(ordersTable.id, orderId)).limit(1);
     if (!order) { res.status(404).json({ error: "Order not found" }); return; }
     if (order.userId !== req.user!.userId && req.user!.role !== "admin" && req.user!.role !== "vendor") {
@@ -399,7 +402,7 @@ router.put("/:id", requireAuth, async (req, res) => {
     res.status(403).json({ error: "Forbidden" }); return;
   }
   try {
-    const id = parseInt(req.params["id"]!);
+    const id = parseInt(String(req.params["id"]));
     const data = UpdateShipmentSchema.parse(req.body);
 
     const updates: Record<string, unknown> = { updatedAt: new Date() };
@@ -443,7 +446,7 @@ router.post("/:id/events", requireAuth, async (req, res) => {
     res.status(403).json({ error: "Forbidden" }); return;
   }
   try {
-    const id = parseInt(req.params["id"]!);
+    const id = parseInt(String(req.params["id"]));
     const data = EventSchema.parse(req.body);
 
     const [event] = await db.insert(shipmentEventsTable).values({
