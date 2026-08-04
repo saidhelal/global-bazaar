@@ -29,6 +29,10 @@ export const ordersTable = pgTable("orders", {
   paymentGateway: text("payment_gateway").default("cod").notNull(),
   paymentIntentId: text("payment_intent_id"),
   paymentDetails: jsonb("payment_details").$type<Record<string, unknown>>(),
+  // Nullable/defaulted so existing rows stay valid: the discount is resolved
+  // server-side by PricingService, never supplied by the client.
+  couponId: integer("coupon_id"),
+  discountAmount: numeric("discount_amount", { precision: 12, scale: 2 }).default("0"),
   notes: text("notes"),
   createdAt: timestamp("created_at").defaultNow().notNull(),
   updatedAt: timestamp("updated_at").defaultNow().notNull(),

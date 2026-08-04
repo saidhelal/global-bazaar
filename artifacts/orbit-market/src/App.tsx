@@ -35,6 +35,9 @@ const ShippingZones     = lazy(() => import("@/pages/dashboard/admin/ShippingZon
 const NotificationsPage = lazy(() => import("@/pages/notifications/NotificationsPage"));
 const MyReviews         = lazy(() => import("@/pages/dashboard/customer/MyReviews"));
 const ReviewModeration  = lazy(() => import("@/pages/dashboard/admin/ReviewModeration"));
+const PaymentsAdmin     = lazy(() => import("@/pages/dashboard/admin/PaymentsAdmin"));
+const VendorEarnings    = lazy(() => import("@/pages/dashboard/vendor/VendorEarnings"));
+const PaymentHistory    = lazy(() => import("@/pages/dashboard/customer/PaymentHistory"));
 const VendorOnboarding  = lazy(() => import("@/pages/vendor/VendorOnboarding"));
 const LegalDashboard    = lazy(() => import("@/pages/dashboard/legal/LegalDashboard"));
 const LegalVendorDetail = lazy(() => import("@/pages/dashboard/legal/LegalVendorDetail"));
@@ -109,6 +112,9 @@ function Router() {
         {/* Reviews */}
         <Route path="/dashboard/reviews/moderation" component={ReviewModeration} />
         <Route path="/dashboard/reviews" component={MyReviews} />
+        <Route path="/dashboard/payments" component={PaymentsAdmin} />
+        <Route path="/dashboard/earnings" component={VendorEarnings} />
+        <Route path="/dashboard/my-payments" component={PaymentHistory} />
 
         {/* Vendor onboarding */}
         <Route path="/vendor/onboarding" component={VendorOnboarding} />

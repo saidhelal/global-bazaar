@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { Link, useLocation } from 'wouter';
-import { LayoutDashboard, ShoppingBag, Heart, Settings, LogOut, Menu, X, Store, Package, BarChart2, Users, Shield, Globe, Truck, Star, MessageSquare, FileCheck } from 'lucide-react';
+import { LayoutDashboard, ShoppingBag, Heart, Settings, LogOut, Menu, X, Store, Package, BarChart2, Users, Shield, Globe, Truck, Star, MessageSquare, FileCheck, CreditCard, Wallet } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
 import { useLanguage } from '../../contexts/LanguageContext';
 
@@ -16,6 +16,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
       { href: '/dashboard/orders', label: { en: 'My Orders', ar: 'طلباتي' }, Icon: ShoppingBag },
       { href: '/dashboard/wishlist', label: { en: 'Wishlist', ar: 'قائمة الأمنيات' }, Icon: Heart },
       { href: '/dashboard/reviews', label: { en: 'My Reviews', ar: 'مراجعاتي' }, Icon: Star },
+      { href: '/dashboard/my-payments', label: { en: 'Payments', ar: 'المدفوعات' }, Icon: CreditCard },
       { href: '/profile/settings', label: { en: 'Settings', ar: 'الإعدادات' }, Icon: Settings },
     ],
     vendor: [
@@ -24,6 +25,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
       { href: '/dashboard/products', label: { en: 'Products', ar: 'المنتجات' }, Icon: Package },
       { href: '/dashboard/orders', label: { en: 'Orders', ar: 'الطلبات' }, Icon: ShoppingBag },
       { href: '/dashboard/shipping', label: { en: 'Shipping', ar: 'الشحن' }, Icon: Truck },
+      { href: '/dashboard/earnings', label: { en: 'Earnings', ar: 'الأرباح' }, Icon: Wallet },
       { href: '/dashboard/analytics', label: { en: 'Analytics', ar: 'التحليلات' }, Icon: BarChart2 },
       { href: '/dashboard/store', label: { en: 'Store Settings', ar: 'إعدادات المتجر' }, Icon: Store },
       { href: '/profile/settings', label: { en: 'Account', ar: 'الحساب' }, Icon: Settings },
@@ -35,6 +37,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
       { href: '/dashboard/legal', label: { en: 'Legal Review', ar: 'المراجعة القانونية' }, Icon: FileCheck },
       { href: '/dashboard/orders', label: { en: 'All Orders', ar: 'جميع الطلبات' }, Icon: ShoppingBag },
       { href: '/dashboard/shipping/zones', label: { en: 'Shipping Zones', ar: 'مناطق الشحن' }, Icon: Truck },
+      { href: '/dashboard/payments', label: { en: 'Payments', ar: 'المدفوعات' }, Icon: CreditCard },
       { href: '/dashboard/analytics', label: { en: 'Analytics', ar: 'التحليلات' }, Icon: BarChart2 },
       { href: '/dashboard/moderation', label: { en: 'Products', ar: 'المنتجات' }, Icon: Shield },
       { href: '/dashboard/reviews/moderation', label: { en: 'Reviews', ar: 'المراجعات' }, Icon: MessageSquare },

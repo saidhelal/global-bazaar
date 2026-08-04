@@ -1,7 +1,10 @@
 import { Router } from "express";
 import { db } from "@workspace/db";
-import { ordersTable, orderItemsTable, usersTable } from "@workspace/db/schema";
-import { eq, desc, inArray } from "drizzle-orm";
+import { ordersTable, orderItemsTable, usersTable, couponsTable, couponRedemptionsTable } from "@workspace/db/schema";
+import { eq, desc, inArray, sql } from "drizzle-orm";
+import { priceOrder, PricingError } from "../payments/pricing";
+import { audit } from "../payments/ledger";
+import { releaseSettlement } from "../payments/services";
 import { z } from "zod";
 import { requireAuth } from "../middlewares/auth";
 import { notifyUser, notifyAdmins, createNotification } from "../lib/notify";
@@ -33,7 +36,10 @@ const CreateOrderSchema = z.object({
   shippingAddress: AddressSchema,
   paymentMethod: z.enum(["cod", "card"]).default("cod"),
   notes: z.string().optional(),
+  // Accepted for backward compatibility but ignored: the currency is derived
+  // from the products themselves by PricingService.
   currency: z.string().default("USD"),
+  couponCode: z.string().optional(),
 });
 
 // POST /api/orders — create order from cart
@@ -41,10 +47,53 @@ router.post("/", requireAuth, async (req, res) => {
   try {
     const data = CreateOrderSchema.parse(req.body);
 
-    const subtotal = data.items.reduce((s, i) => s + i.price * i.quantity, 0);
-    const shippingCost = subtotal >= 100 ? 0 : 9.99;
-    const tax = subtotal * 0.05;
-    const total = subtotal + shippingCost + tax;
+    // Authoritative pricing: every figure below comes from the database. The
+    // client's prices are never used, only cross-checked.
+    let pricing;
+    try {
+      pricing = await priceOrder({
+        items: data.items.map(i => ({ productId: i.productId, quantity: i.quantity })),
+        country: data.shippingAddress.country,
+        state: data.shippingAddress.state,
+        couponCode: data.couponCode,
+        userId: req.user!.userId,
+      });
+    } catch (err) {
+      if (err instanceof PricingError) {
+        res.status(400).json({ error: err.message, code: err.code });
+        return;
+      }
+      throw err;
+    }
+
+    // Reject tampered baskets outright rather than silently repricing them, so
+    // a mismatch surfaces instead of becoming a support ticket later.
+    const mismatch = data.items.find(sent => {
+      const real = pricing.items.find(p => p.productId === sent.productId);
+      return real !== undefined && Math.abs(real.price - sent.price) > 0.01;
+    });
+    if (mismatch) {
+      const real = pricing.items.find(p => p.productId === mismatch.productId)!;
+      await audit({
+        action: "order.price_mismatch",
+        actorId: req.user!.userId,
+        severity: "critical",
+        detail: { productId: mismatch.productId, clientPrice: mismatch.price, actualPrice: real.price },
+        ipAddress: req.ip ?? null,
+      });
+      res.status(409).json({
+        error: "Product prices have changed. Please refresh your cart.",
+        code: "PRICE_MISMATCH",
+        productId: mismatch.productId,
+        actualPrice: real.price,
+      });
+      return;
+    }
+
+    const subtotal = pricing.subtotal;
+    const shippingCost = pricing.shippingCost;
+    const tax = pricing.taxAmount;
+    const total = pricing.total;
 
     const [order] = await db.insert(ordersTable).values({
       userId: req.user!.userId,
@@ -53,24 +102,39 @@ router.post("/", requireAuth, async (req, res) => {
       shippingCost: shippingCost.toFixed(2),
       tax: tax.toFixed(2),
       total: total.toFixed(2),
-      currency: data.currency,
+      currency: pricing.currency,
       shippingAddress: data.shippingAddress,
       paymentMethod: data.paymentMethod,
+      couponId: pricing.couponId,
+      discountAmount: pricing.discountAmount.toFixed(2),
       notes: data.notes,
     }).returning();
 
     await db.insert(orderItemsTable).values(
-      data.items.map(item => ({
+      pricing.items.map(item => ({
         orderId: order.id,
         productId: item.productId,
         vendorId: item.vendorId,
         title: item.title,
         price: item.price.toFixed(2),
         quantity: item.quantity,
-        subtotal: (item.price * item.quantity).toFixed(2),
+        subtotal: item.subtotal.toFixed(2),
         image: item.image,
       }))
     );
+
+    if (pricing.couponId) {
+      await db.insert(couponRedemptionsTable).values({
+        couponId: pricing.couponId,
+        userId: req.user!.userId,
+        orderId: order.id,
+        discountAmount: pricing.discountAmount.toFixed(2),
+        currency: pricing.currency,
+      });
+      await db.update(couponsTable)
+        .set({ usedCount: sql`${couponsTable.usedCount} + 1` })
+        .where(eq(couponsTable.id, pricing.couponId));
+    }
 
     res.status(201).json({ order });
 
@@ -177,6 +241,18 @@ router.put("/:id/status", requireAuth, async (req, res) => {
     const { status } = z.object({
       status: z.enum(["pending","confirmed","processing","shipped","delivered","cancelled","refunded"]),
     }).parse(req.body);
+    // Delivery is what releases vendor earnings from escrow into payable.
+    if (status === "delivered") {
+      try {
+        await releaseSettlement(id);
+      } catch (err) {
+        await audit({
+          action: "settlement.release_failed", orderId: id, severity: "warning",
+          detail: { error: err instanceof Error ? err.message : String(err) },
+        });
+      }
+    }
+
     const [order] = await db.update(ordersTable)
       .set({ status, updatedAt: new Date() })
       .where(eq(ordersTable.id, id))
