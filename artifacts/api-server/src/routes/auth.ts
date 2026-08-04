@@ -6,6 +6,7 @@ import { eq } from "drizzle-orm";
 import { signToken, requireAuth } from "../middlewares/auth";
 import { z } from "zod";
 import { notifyUser, notifyAdmins } from "../lib/notify";
+import { authLimiter, accountLimiter } from "../middlewares/rateLimit";
 
 const router = Router();
 
@@ -48,7 +49,7 @@ function safeUser(user: typeof usersTable.$inferSelect) {
 }
 
 // POST /api/auth/register
-router.post("/register", async (req, res) => {
+router.post("/register", accountLimiter, async (req, res) => {
   try {
     const data = RegisterSchema.parse(req.body);
     const existing = await db.select().from(usersTable).where(eq(usersTable.email, data.email)).limit(1);
@@ -103,7 +104,7 @@ router.post("/register", async (req, res) => {
 });
 
 // POST /api/auth/login
-router.post("/login", async (req, res) => {
+router.post("/login", authLimiter, async (req, res) => {
   try {
     const { email, password } = LoginSchema.parse(req.body);
     const [user] = await db.select().from(usersTable).where(eq(usersTable.email, email)).limit(1);
@@ -197,7 +198,7 @@ router.put("/password", requireAuth, async (req, res) => {
 });
 
 // POST /api/auth/forgot-password
-router.post("/forgot-password", async (req, res) => {
+router.post("/forgot-password", accountLimiter, async (req, res) => {
   try {
     const { email } = z.object({ email: z.string().email() }).parse(req.body);
     const [user] = await db.select().from(usersTable).where(eq(usersTable.email, email)).limit(1);
