@@ -77,22 +77,100 @@ nano .env
 | `S3_REGION` | مثال: `eu-central-1` |
 | `AWS_ACCESS_KEY_ID` / `AWS_SECRET_ACCESS_KEY` | **اتركهما فارغين على EC2** واستخدم IAM Role مرتبطًا بالمثيل |
 
-أنشئ الحاوية مع **حجب الوصول العام بالكامل** — لا تُقدَّم الكائنات مباشرة، بل
-يتحقق الـAPI من الصلاحية ثم يُحوّل إلى رابط مؤقت موقّع. صلاحيات IAM المطلوبة:
+لا تُقدَّم الكائنات للعالم مباشرة: يتحقق الـAPI من الصلاحية ثم يُحوّل إلى رابط
+موقّع قصير العمر. لذلك يجب **حجب الوصول العام بالكامل** على الحاوية.
 
-```json
-{ "Effect": "Allow",
-  "Action": ["s3:PutObject","s3:GetObject","s3:DeleteObject","s3:HeadObject"],
-  "Resource": "arn:aws:s3:::YOUR_BUCKET/objects/*" }
+#### 1) إنشاء الحاوية وحجب الوصول العام
+
+```bash
+export BUCKET=orbit-market-prod
+export REGION=eu-central-1
+
+aws s3api create-bucket --bucket "$BUCKET" --region "$REGION" \
+  --create-bucket-configuration LocationConstraint="$REGION"
+
+aws s3api put-public-access-block --bucket "$BUCKET" \
+  --public-access-block-configuration \
+  BlockPublicAcls=true,IgnorePublicAcls=true,BlockPublicPolicy=true,RestrictPublicBuckets=true
+
+# تشفير افتراضي عند التخزين
+aws s3api put-bucket-encryption --bucket "$BUCKET" \
+  --server-side-encryption-configuration \
+  '{"Rules":[{"ApplyServerSideEncryptionByDefault":{"SSEAlgorithm":"AES256"}}]}'
 ```
 
-يجب ضبط CORS على الحاوية للسماح بالرفع المباشر من المتصفح:
+#### 2) CORS — إلزامي وإلا فشل الرفع من المتصفح
 
-```json
-[{ "AllowedOrigins": ["https://example.com"],
-   "AllowedMethods": ["PUT","GET"],
-   "AllowedHeaders": ["content-type"],
-   "MaxAgeSeconds": 3000 }]
+المتصفح يرفع مباشرة إلى S3 عبر `PUT`، فبدون هذا الإعداد يحجب المتصفح الطلب.
+`ETag` مكشوف لأن العميل يقرؤه بعد الرفع.
+
+```bash
+aws s3api put-bucket-cors --bucket "$BUCKET" --cors-configuration '{
+  "CORSRules": [{
+    "AllowedOrigins": ["https://example.com", "https://www.example.com"],
+    "AllowedMethods": ["PUT", "GET"],
+    "AllowedHeaders": ["content-type", "x-amz-meta-owner", "x-amz-meta-visibility"],
+    "ExposeHeaders": ["ETag"],
+    "MaxAgeSeconds": 3000
+  }]
+}'
+```
+
+> ترويستا `x-amz-meta-*` مطلوبتان لأن المالك ودرجة الظهور مثبّتتان داخل توقيع
+> الرابط، فيرسلهما المتصفح مع الرفع.
+
+#### 3) سياسة IAM
+
+`HeadObject` لا يحتاج إذنًا منفصلًا — `s3:GetObject` يغطيه.
+
+```bash
+cat > s3-policy.json <<EOF
+{
+  "Version": "2012-10-17",
+  "Statement": [{
+    "Effect": "Allow",
+    "Action": ["s3:PutObject", "s3:GetObject", "s3:DeleteObject"],
+    "Resource": "arn:aws:s3:::$BUCKET/objects/*"
+  }]
+}
+EOF
+
+aws iam create-policy --policy-name OrbitMarketS3 \
+  --policy-document file://s3-policy.json
+```
+
+#### 4) IAM Role وربطه بمثيل EC2 (بلا مفاتيح ثابتة)
+
+```bash
+cat > trust.json <<'EOF'
+{ "Version": "2012-10-17",
+  "Statement": [{ "Effect": "Allow",
+    "Principal": { "Service": "ec2.amazonaws.com" },
+    "Action": "sts:AssumeRole" }] }
+EOF
+
+aws iam create-role --role-name OrbitMarketEC2 \
+  --assume-role-policy-document file://trust.json
+
+aws iam attach-role-policy --role-name OrbitMarketEC2 \
+  --policy-arn arn:aws:iam::ACCOUNT_ID:policy/OrbitMarketS3
+
+aws iam create-instance-profile --instance-profile-name OrbitMarketEC2
+aws iam add-role-to-instance-profile \
+  --instance-profile-name OrbitMarketEC2 --role-name OrbitMarketEC2
+
+aws ec2 associate-iam-instance-profile --instance-id i-XXXXXXXX \
+  --iam-instance-profile Name=OrbitMarketEC2
+```
+
+بعد الربط اترك `AWS_ACCESS_KEY_ID` و`AWS_SECRET_ACCESS_KEY` **فارغين** — تلتقط
+حزمة AWS الاعتمادات من الدور تلقائيًا.
+
+#### 5) التحقق
+
+```bash
+curl -i https://example.com/api/storage/uploads/request-url  # بلا رمز ← 401
+# ومن حساب بائع: 200 مع uploadURL موقّع، أو 503 إن لم تُضبط الحاوية
 ```
 
 بدون `S3_BUCKET` و`S3_REGION` تُعيد نقاط الرفع **503** ويبقى باقي النظام يعمل.

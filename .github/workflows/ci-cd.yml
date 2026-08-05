@@ -144,6 +144,10 @@ jobs:
             VITE_STRIPE_PUBLISHABLE_KEY="${VITE_STRIPE_PUBLISHABLE_KEY:-}" \
             pnpm run build
 
+          # PM2 writes to ./logs and the directory is git-ignored, so it is
+          # absent on a fresh clone and the first start would fail without this.
+          mkdir -p logs
+
           echo "==> Reloading process manager"
           # reload = zero-downtime; falls back to start on first deploy.
           pm2 reload ecosystem.config.cjs --update-env || pm2 start ecosystem.config.cjs

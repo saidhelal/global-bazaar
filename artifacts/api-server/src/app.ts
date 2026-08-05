@@ -21,17 +21,28 @@ app.use(
   }),
 );
 
-// Reflecting any origin while allowing credentials lets any site issue
-// authenticated cross-origin requests. In production set CORS_ORIGINS to a
-// comma-separated allow-list; when unset the previous permissive behaviour is
-// kept so local development is unaffected.
+/**
+ * Cross-origin policy.
+ *
+ * Reflecting any origin while allowing credentials would let any site issue
+ * authenticated requests on a visitor's behalf, so that is never done in
+ * production. In production an unset CORS_ORIGINS denies all cross-origin
+ * requests rather than falling back to permissive: the deployment serves the
+ * web app and the API from one origin through Nginx, so same-origin traffic —
+ * which does not involve CORS at all — keeps working untouched.
+ *
+ * Outside production an empty list stays permissive so the app can be driven
+ * directly from tools and a dev server on another port.
+ */
 const allowedOrigins = (process.env["CORS_ORIGINS"] ?? "")
   .split(",")
   .map((o) => o.trim())
   .filter(Boolean);
 
+const isProduction = process.env["NODE_ENV"] === "production";
+
 app.use(cors({
-  origin: allowedOrigins.length > 0 ? allowedOrigins : true,
+  origin: allowedOrigins.length > 0 ? allowedOrigins : !isProduction,
   credentials: true,
 }));
 app.use(cookieParser());
