@@ -13,6 +13,7 @@ with a React 19 storefront, an Express 5 REST API, and PostgreSQL via Drizzle OR
 | Backend | Node 22+, Express 5, pino, JWT, bcrypt |
 | Database | PostgreSQL 18, Drizzle ORM (23 tables) |
 | Payments | Stripe, Paymob, MyFatoorah, cash on delivery |
+| Object storage | Amazon S3 (presigned upload and read URLs) |
 | Build | Vite (web), esbuild (API), TypeScript project references |
 | Tooling | pnpm workspaces with a version catalog |
 
@@ -107,8 +108,8 @@ Before any public deployment:
 
 ## Known limitations
 
-- Object storage is still bound to the Replit sidecar, so uploads do not work on
-  other hosts. External image URLs are unaffected. See [docs/DEPLOYMENT.md](docs/DEPLOYMENT.md).
+- Image upload requires an S3 bucket (`S3_BUCKET`, `S3_REGION`); while unset the
+  upload endpoints answer 503 and external image URLs are unaffected.
 - Refunds are automated for Stripe; Paymob and MyFatoorah refunds are completed
   in each provider's own dashboard and stay `processing` until then.
 - The schema is applied with `drizzle-kit push`, so there is no migration

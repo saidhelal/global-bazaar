@@ -1,6 +1,6 @@
 # التشغيل المحلي — Orbit Market (global-bazaar)
 
-دليل تشغيل المشروع محليًا على Windows بعد نقله من Replit.
+دليل تشغيل المشروع محليًا على Windows.
 
 ---
 
@@ -124,7 +124,7 @@ Invoke-WebRequest -Uri "http://127.0.0.1:5175/api/seed" -Method POST -UseBasicPa
 | Vendor | `vendor@orbit.market` | `Vendor1234!` |
 | Customer | `customer@orbit.market` | `Customer1234!` |
 
-> ⚠️ هذه بيانات تطوير فقط. النقطة `/api/seed` **غير محمية** ويجب تعطيلها أو حمايتها قبل أي نشر.
+> ⚠️ هذه بيانات تطوير فقط. النقطة `/api/seed` محجوبة تلقائيًا عندما `NODE_ENV=production`.
 
 ---
 
@@ -143,7 +143,7 @@ Invoke-WebRequest -Uri "http://127.0.0.1:5175/api/seed" -Method POST -UseBasicPa
 | `pnpm run build` | `artifacts/orbit-market` | بناء إنتاج → `dist/public` |
 | `pnpm --filter @workspace/api-spec run codegen` | الجذر | إعادة توليد عميل API من OpenAPI |
 
-> `pnpm run build` في الجذر يستدعي `typecheck` أولًا، وهو **يفشل حاليًا** لسبب سابق للنقل (انظر قسم المشاكل المعروفة). استخدم أوامر البناء داخل كل حزمة.
+> `pnpm run build` في الجذر يستدعي `typecheck` أولًا، وكلاهما ينجح حاليًا.
 
 ---
 
@@ -160,7 +160,8 @@ global-bazaar/
 │   ├── api-server/                  ← الخادم: Express 5
 │   │   ├── src/routes/              ← 11 مسارًا
 │   │   ├── src/middlewares/auth.ts  ← JWT
-│   │   ├── src/lib/                 ← البريد، السجلات، التخزين، ACL
+│   │   ├── src/lib/                 ← البريد، السجلات، الإشعارات
+│   │   ├── src/storage/             ← تخزين S3 (روابط موقّعة + ACL)
 │   │   └── build.mjs                ← تجميع esbuild → dist/index.mjs
 │   └── mockup-sandbox/              ← معاينة مكوّنات (أداة تصميم، ليست جزءًا من المنتج)
 ├── lib/
@@ -185,7 +186,7 @@ global-bazaar/
               └── /api/*       → proxy → :5176 (Express) → :5433 (Postgres)
 ```
 
-الواجهة تستدعي مسارات نسبية `/api/...` فقط. الـ proxy في `vite.config.ts` هو ما يجعلها تصل للخادم — وهو البديل المحلي لموجّه Replit.
+الواجهة تستدعي مسارات نسبية `/api/...` فقط. الـ proxy في `vite.config.ts` هو ما يجعلها تصل للخادم — وفي الإنتاج يقوم Nginx بنفس الدور.
 
 ---
 
@@ -209,7 +210,7 @@ global-bazaar/
 | Paymob | `PAYMOB_API_KEY`, `PAYMOB_INTEGRATION_ID`, `PAYMOB_IFRAME_ID`, `PAYMOB_HMAC_SECRET` | ترجع 503 |
 | MyFatoorah | `MYFATOORAH_API_KEY`, `MYFATOORAH_BASE_URL` | ترجع 503 |
 | البريد | `SMTP_HOST`, `SMTP_PORT`, `SMTP_USER`, `SMTP_PASS`, `FROM_EMAIL`, `FROM_NAME` | يُطبع في الطرفية بدل الإرسال |
-| التخزين | `PUBLIC_OBJECT_SEARCH_PATHS`, `PRIVATE_OBJECT_DIR` | رفع الملفات معطّل |
+| التخزين (S3) | `S3_BUCKET`, `S3_REGION`, `AWS_ACCESS_KEY_ID`, `AWS_SECRET_ACCESS_KEY`, `S3_ENDPOINT`, `MAX_UPLOAD_BYTES` | نقاط الرفع ترجع 503 |
 | Postgres المحلي | `PG_PORT`, `PG_USER`, `PG_PASSWORD`, `PG_DATABASE` | 5433 / bazaar / bazaar / global_bazaar |
 | عام | `NODE_ENV`, `LOG_LEVEL` | development / info |
 
@@ -219,24 +220,19 @@ global-bazaar/
 
 ## 7. المشاكل المعروفة
 
-### 🔴 `pnpm run typecheck` يفشل (سابق للنقل)
+### ✅ `pnpm run typecheck` — أُصلح
 
-```
-lib/db/src/schema/users.ts(58,34): error TS2344
-lib/db/src/schema/users.ts(60,32): error TS2344
-```
+كان يفشل بخطأ `TS2344` في `lib/db/src/schema/users.ts` لأن `drizzle-zod@0.8.3`
+يُنتج مخططات بواجهة Zod v4 بينما الملف يستورد الجذر v3. وُحِّد الاستيراد إلى
+`from "zod/v4"` وأصبح `typecheck` و`build` في الجذر ينجحان.
 
-**السبب:** `drizzle-zod@0.8.3` يُنتج مخططات بواجهة Zod v4، بينما [users.ts](../lib/db/src/schema/users.ts) يستورد `from "zod"` أي الجذر v3. حزمة `zod@3.25.76` تحتوي كلا الواجهتين.
+### 🟠 رفع الملفات يتطلب حاوية S3
 
-**ليس ناتجًا عن نقل المشروع** — الملف من الـ commit `3a46754`، ولم تتغير أي نسخة من zod أو drizzle-zod. الخطأ في الأنواع فقط ولا يؤثر على التشغيل لأن esbuild يزيل الأنواع دون فحصها.
-
-**الأثر:** `pnpm run build` في الجذر يتوقف. البناء داخل كل حزمة يعمل بشكل طبيعي.
-**الحل المقترح:** توحيد الاستيراد إلى `from "zod/v4"` في `lib/db/src/schema/users.ts`. *(لم يُنفَّذ — يمسّ كود المنتج.)*
-
-### 🔴 رفع الملفات معطّل محليًا
-
-[objectStorage.ts](../artifacts/api-server/src/lib/objectStorage.ts) يجلب اعتمادات Google Cloud Storage من خدمة Replit الداخلية على `127.0.0.1:1106`. غير موجودة محليًا.
-**الأثر:** رفع صور المنتجات ووثائق البائعين لا يعمل. باقي المشروع سليم.
+التخزين يعمل على Amazon S3 عبر روابط موقّعة. بدون ضبط `S3_BUCKET` و`S3_REGION`
+تُعيد نقاط الرفع **503**.
+**الأثر محليًا:** رفع صور المنتجات ووثائق البائعين لا يعمل ما لم تضبط حاوية
+(أو نقطة متوافقة مثل MinIO عبر `S3_ENDPOINT`). باقي المشروع سليم، والمنتجات
+ذات الروابط الخارجية تعمل طبيعيًا.
 
 ### 🟠 إرسال البريد لا يعمل حتى مع ضبط SMTP
 
@@ -246,21 +242,17 @@ lib/db/src/schema/users.ts(60,32): error TS2344
 
 `vite.config.ts` يعرّف `@assets` → `attached_assets/` وهو غير موجود في المستودع. لا يسبب خطأ ما لم يُستخدم الاسم المستعار.
 
-### 🟡 تعارض في التوثيق القديم
-
-`replit.md` يذكر أن الخادم على المنفذ 5000 — غير صحيح. المنفذ الفعلي محليًا هو 5176.
-
 ---
 
 ## 8. خطوات النشر المستقبلية
 
-المشروع لم يعد مربوطًا بمنصة Replit. لأي نشر لاحق يجب معالجة التالي:
+دليل النشر الكامل في [DEPLOYMENT.md](./DEPLOYMENT.md). ملخص ما يلزم:
 
 ### أ. قاعدة البيانات
-استبدال Postgres المدمج بخادم حقيقي (VPS / Docker / خدمة مُدارة). يكفي تغيير `DATABASE_URL` — لا تغيير في الكود. راجع `MIGRATION_FROM_REPLIT.md`.
+استبدال Postgres المدمج بخادم حقيقي (VPS / Docker / خدمة مُدارة). يكفي تغيير `DATABASE_URL` — لا تغيير في الكود.
 
 ### ب. تخزين الملفات
-إعادة كتابة `objectStorage.ts` لتستخدم اعتمادات مباشرة (Service Account لـ GCS، أو S3، أو تخزين على القرص) بدل خدمة Replit.
+ضبط `S3_BUCKET` و`S3_REGION`. على EC2 استخدم IAM Role بدل مفاتيح ثابتة.
 
 ### ج. تقديم الواجهة
 `proxy` الخاص بـ Vite يعمل في التطوير فقط. في الإنتاج:
@@ -269,7 +261,7 @@ lib/db/src/schema/users.ts(60,32): error TS2344
 - توجيه `/api` من نفس الخادم إلى خدمة Express حتى تبقى المسارات النسبية صالحة
 
 ### د. الأمان قبل النشر — إلزامي
-1. حذف `JWT_SECRET` من [.replit](../.replit) وتدويره (مكشوف في تاريخ Git).
+1. تدوير `JWT_SECRET` (قيمة سابقة مكشوفة في تاريخ Git).
 2. حماية أو تعطيل `POST /api/seed`.
 3. تقييد CORS بقائمة أصول محددة بدل `origin: true`.
 4. ضبط `NODE_ENV=production` لتعطيل تنسيق السجلات المفصّل.
@@ -281,4 +273,3 @@ pnpm --filter @workspace/orbit-market run build    # → dist/public
 ```
 التشغيل في الإنتاج: `node --enable-source-maps artifacts/api-server/dist/index.mjs`
 
-> ملاحظة: ملفات `.replit-artifact/artifact.toml` تحتوي تعريفات بناء وتشغيل الإنتاج التي كانت تستخدمها Replit — مرجع مفيد لبناء ملفات إعداد Nginx أو systemd أو Docker مكافئة.
